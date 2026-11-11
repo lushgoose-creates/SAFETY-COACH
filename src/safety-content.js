@@ -1,3 +1,5 @@
+const fs = require('node:fs');
+const path = require('node:path');
 const db = require('./db');
 const { readSop } = require('./machines');
 const { isAiConfigured, requestChat, parseJsonContent } = require('./ai');
@@ -71,7 +73,7 @@ const fallbackQuizzes = {
 };
 
 function parseRules(sopText) {
-  return [...sopText.matchAll(/^规则(\d+)[：:]\s*(.+)$/gm)].map((match) => ({
+  return [...sopText.matchAll(/^(?:规则|Rule)\s*(\d+)[：:]\s*(.+)$/gm)].map((match) => ({
     number: Number(match[1]),
     text: match[2].trim()
   }));
@@ -260,7 +262,9 @@ function localAnswer(sopText, question, lang) {
     ? [/\bgloves?\b/, /\bhand\b/, /\btouch.*rotat/, /stop.*by.*hand/, /leave.*runn/]
     : [/手套/, /徒手/, /用手/, /触摸.*旋转/, /手制动/, /离开.*运转/];
   if (unsafePatterns.some((re) => re.test(q))) {
-    const dangerRule = rules.find((r) => /手套|手|旋转|触摸|卷入|防护罩|急停/.test(r.text));
+    const dangerRule = rules.find((r) => english
+      ? /\bgloves?\b|\bhand\b|rotat|touch|guard|emergency stop/i.test(r.text)
+      : /手套|手|旋转|触摸|卷入|防护罩|急停/.test(r.text));
     if (dangerRule) {
       return {
         answer: english ? `No. ${dangerRule.text} [Rule ${dangerRule.number}]` : `不可以。${dangerRule.text}【规则${dangerRule.number}】`,
@@ -301,9 +305,13 @@ function localAnswer(sopText, question, lang) {
 async function answerQuestion(machine, question, lang = 'zh') {
   lang = language(lang);
   const { text: sopText } = readSop(machine);
-  const outOfScope = OUT_OF_SCOPE_ANSWERS[lang];
   const english = lang === 'en';
-  const validRules = new Set(parseRules(sopText).map((rule) => rule.number));
+  const enSopPath = path.join(__dirname, '..', 'sops', `${machine.id}.en.md`);
+  const answerSopText = english && fs.existsSync(enSopPath)
+    ? fs.readFileSync(enSopPath, 'utf8').replace(/\r\n/g, '\n')
+    : sopText;
+  const outOfScope = OUT_OF_SCOPE_ANSWERS[lang];
+  const validRules = new Set(parseRules(answerSopText).map((rule) => rule.number));
 
   if (isAiConfigured()) {
     try {
@@ -357,7 +365,7 @@ ${sopText}`;
     }
   }
 
-  const fallback = localAnswer(sopText, question, lang);
+  const fallback = localAnswer(answerSopText, question, lang);
   if (fallback) return { answer: fallback.answer, citedRules: fallback.citedRules, answered: true };
   return { answer: outOfScope, citedRules: [], answered: false };
 }
