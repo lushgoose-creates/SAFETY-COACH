@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#151713">
+  <title>教师仪表盘｜扫码安全官</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/i18n.js" defer></script>
+  <script src="/admin.js" defer></script>
+</head>
+<body class="admin-page" data-page="admin">
+  <header class="admin-header">
+    <div><span class="eyebrow" data-i18n="adminEyebrow">INSTRUCTOR CONSOLE</span><h1 data-i18n="adminTitle">教师仪表盘</h1><p data-i18n="adminSubtitle">扫码安全官 · 实训安全数据总览</p></div>
+    <div class="live-indicator"><span aria-hidden="true"></span><b data-i18n="autoRefresh">每 10 秒自动刷新</b></div>
+  </header>
+  <main class="admin-main">
+    <div class="admin-toolbar">
+      <div><strong id="last-updated" data-i18n="loadingData">正在加载数据…</strong><p id="admin-status" role="status" data-i18n="connecting">连接服务器中</p></div>
+      <div class="toolbar"><button id="language-toggle" class="button secondary" type="button">English</button><button id="refresh-button" class="button secondary" type="button" data-i18n="refreshNow">立即刷新</button><a class="button dark" href="/api/admin/export.csv" data-lang-link data-i18n="exportCsv" download>导出 CSV</a></div>
+    </div>
+
+    <section class="dashboard-section"><div class="section-title"><span>01</span><div><h2 data-i18n="machineStatsTitle">设备通过率</h2><p data-i18n="machineStatsDescription">演示数据会明确标记，不会静默混入真实记录。</p></div></div><div id="machine-stats" class="stats-grid"></div></section>
+
+    <section class="dashboard-section"><div class="section-title"><span>02</span><div><h2 data-i18n="attemptsTitle">最近小测记录</h2><p data-i18n="attemptsDescription">显示最近 50 次作答，包含每次重试。</p></div></div><div class="table-wrap"><table><thead><tr><th data-i18n="resultHeader">结果</th><th data-i18n="personHeader">姓名 / 学号</th><th data-i18n="machineHeader">设备</th><th data-i18n="timeHeader">时间</th></tr></thead><tbody id="attempts-body"></tbody></table><div id="attempts-empty" class="empty-state" data-i18n="attemptsEmpty">暂无小测记录。可运行 npm run seed-demo 预览。</div></div></section>
+
+    <div class="dashboard-columns">
+      <section class="dashboard-section"><div class="section-title"><span>03</span><div><h2 data-i18n="questionsTitle">最常被问的 10 个问题</h2><p data-i18n="questionsDescription">帮助老师发现学生最关心什么。</p></div></div><div class="table-wrap"><table><thead><tr><th data-i18n="countHeader">次数</th><th data-i18n="questionMachineHeader">问题 / 设备</th></tr></thead><tbody id="questions-body"></tbody></table><div id="questions-empty" class="empty-state" data-i18n="questionsEmpty">暂无提问记录。</div></div></section>
+
+      <section class="dashboard-section"><div class="section-title"><span>04</span><div><h2 data-i18n="difficultTitle">高错误率题目</h2><p data-i18n="difficultDescription">按答错比例排序，定位薄弱规则。</p></div></div><div class="table-wrap"><table><thead><tr><th data-i18n="failRateHeader">错误率</th><th data-i18n="questionRuleHeader">题目 / 规则</th></tr></thead><tbody id="difficult-body"></tbody></table><div id="difficult-empty" class="empty-state" data-i18n="difficultEmpty">暂无答题统计。</div></div></section>
+    </div>
+
+    <section class="dashboard-section escalation-section"><div class="section-title"><span>05</span><div><h2 data-i18n="unansweredTitle">未回答 / 需老师介入的问题</h2><p data-i18n="unansweredDescription">规程未涵盖或AI连接失败的问题会出现在这里。</p></div></div><div class="table-wrap"><table><thead><tr><th data-i18n="timeHeader">时间</th><th data-i18n="machineHeader">设备</th><th data-i18n="studentQuestionHeader">学生问题</th></tr></thead><tbody id="unanswered-body"></tbody></table><div id="unanswered-empty" class="empty-state" data-i18n="unansweredEmpty">暂无待介入问题。</div></div></section>
+  </main>
+  <footer class="footer" data-i18n="footer">答案仅依据实训中心安全规程，不确定时请询问指导老师</footer>
+</body>
+</html>

@@ -1,0 +1,15 @@
+node_modules
+data
+.env
+.env.local
+.git
+.gitignore
+.nyc_output
+coverage
+*.log
+npm-debug.log*
+.screenshots
+Dockerfile
+.dockerignore
+railway.json
+railway.toml

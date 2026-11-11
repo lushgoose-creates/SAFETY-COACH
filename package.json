@@ -1,0 +1,24 @@
+{
+  "name": "scan-safety-coach",
+  "version": "1.0.0",
+  "private": true,
+  "description": "扫码安全官：基于设备安全规程的移动安全简报、问答和上岗小测",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed-demo": "node scripts/seed-demo.js",
+    "clear-demo": "node scripts/clear-demo.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "qrcode": "^1.5.4"
+  },
+  "allowScripts": {
+    "better-sqlite3@11.10.0": true
+  }
+}

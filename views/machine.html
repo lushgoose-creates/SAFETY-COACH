@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#ffd429">
+  <title>设备安全准入｜扫码安全官</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/i18n.js" defer></script>
+  <script src="/machine.js" defer></script>
+</head>
+<body class="student-page" data-page="machine">
+  <div class="safety-stripe" aria-hidden="true"></div>
+  <header class="machine-header">
+    <div class="brand-row"><span class="brand-mark" data-i18n="brandMark">安</span><span data-i18n="brandName">扫码安全官</span><span class="machine-only" data-i18n="machineOnly">本机专用</span><button id="language-toggle" class="language-toggle" type="button">English</button></div>
+    <h1 id="machine-name" data-i18n="identifyingMachine">正在识别设备…</h1>
+    <p id="machine-description" data-i18n="pleaseWait">请稍候</p>
+  </header>
+
+  <nav class="step-nav" aria-label="安全准入进度" data-i18n-aria-label="progressLabel">
+    <ol id="step-progress">
+      <li data-step="0"><span>1</span><small data-i18n="stepIdentity">身份</small></li>
+      <li data-step="1"><span>2</span><small data-i18n="stepBriefing">简报</small></li>
+      <li data-step="2"><span>3</span><small data-i18n="stepChat">问答</small></li>
+      <li data-step="3"><span>4</span><small data-i18n="stepQuiz">小测</small></li>
+    </ol>
+  </nav>
+
+  <main class="student-main">
+    <div id="app-alert" class="alert error-alert" role="alert" hidden></div>
+
+    <section id="screen-identity" class="flow-screen">
+      <div class="section-heading"><span class="eyebrow" data-i18n="identityEyebrow">STEP 01 · 身份登记</span><h2 data-i18n="identityTitle">开始本机安全准入</h2><p data-i18n="identityDescription">信息仅用于本次实训小测记录。</p></div>
+      <form id="identity-form" class="card form-card">
+        <label for="student-name" data-i18n="nameLabel">姓名</label>
+        <input id="student-name" name="name" type="text" autocomplete="name" maxlength="40" placeholder="请输入真实姓名" data-i18n-placeholder="namePlaceholder" required>
+        <label for="student-id" data-i18n="studentIdLabel">学号</label>
+        <input id="student-id" name="studentId" type="text" autocomplete="off" maxlength="30" placeholder="请输入学号" data-i18n-placeholder="studentIdPlaceholder" required>
+        <div class="sticky-action"><button class="button primary full-width" type="submit" data-i18n="identitySubmit">确认身份，查看安全简报</button></div>
+      </form>
+    </section>
+
+    <section id="screen-briefing" class="flow-screen" hidden>
+      <div class="section-heading"><span class="eyebrow" data-i18n="briefingEyebrow">STEP 02 · 60秒安全简报</span><h2 data-i18n="briefingTitle">先记住这 5 件事</h2><p data-i18n="briefingDescription">以下要点只来自本设备安全规程。</p></div>
+      <div class="warning-banner"><strong data-i18n="warningLabel">注意</strong><span data-i18n="warningText">未完成学习和小测，不得操作设备。</span></div>
+      <ol id="briefing-list" class="briefing-list" aria-live="polite"><li class="card loading-card" data-i18n="briefingLoading">正在生成本机安全简报…</li></ol>
+      <div class="sticky-action"><button id="briefing-next" class="button primary full-width" type="button" data-i18n="briefingNext" disabled>我已阅读，进入安全问答</button></div>
+    </section>
+
+    <section id="screen-chat" class="flow-screen" hidden>
+      <div class="section-heading"><span class="eyebrow" data-i18n="chatEyebrow">STEP 03 · 问问安全官</span><h2 data-i18n="chatTitle">有疑问，先问再操作</h2><p data-i18n="chatDescription">答案仅依据本机规程；未涵盖的问题会转交老师。</p></div>
+      <div id="chat-messages" class="chat-messages" aria-live="polite">
+        <div class="message assistant-message"><div class="message-label" data-i18n="coach">安全官</div><p data-i18n="chatWelcome">你可以问本机的防护、操作或异常处理问题。不确定时，请直接询问指导老师。</p></div>
+      </div>
+      <form id="chat-form" class="chat-form card">
+        <label for="question-input" data-i18n="questionLabel">你的问题</label>
+        <textarea id="question-input" rows="2" maxlength="300" placeholder="例如：清理切屑时可以戴手套吗？" data-i18n-placeholder="questionPlaceholder" required></textarea>
+        <button id="ask-button" class="button dark full-width" type="submit" data-i18n="sendQuestion">发送问题</button>
+      </form>
+      <div class="sticky-action"><button id="chat-next" class="button primary full-width" type="button" data-i18n="chatNext">没有疑问了，开始上岗小测</button></div>
+    </section>
+
+    <section id="screen-quiz" class="flow-screen" hidden>
+      <div class="section-heading"><span class="eyebrow" data-i18n="quizEyebrow">STEP 04 · 上岗小测</span><h2 data-i18n="quizTitle">三题全部正确才通过</h2><p data-i18n="quizDescription">可重试，每次作答都会记录。</p></div>
+      <form id="quiz-form">
+        <div id="quiz-questions" class="quiz-questions" aria-live="polite"><div class="card loading-card" data-i18n="quizLoading">正在准备本机题目…</div></div>
+        <div class="sticky-action"><button id="quiz-submit" class="button primary full-width" type="submit" data-i18n="submitAnswers" disabled>提交答案（0/3）</button></div>
+      </form>
+    </section>
+
+    <section id="screen-result" class="flow-screen" hidden>
+      <div id="result-card" class="result-card" aria-live="polite"></div>
+      <div class="sticky-action"><button id="retry-quiz" class="button primary full-width" type="button" data-i18n="retryQuiz" hidden>复习后重新测验</button></div>
+    </section>
+  </main>
+
+  <footer class="footer" data-i18n="footer">答案仅依据实训中心安全规程，不确定时请询问指导老师</footer>
+</body>
+</html>

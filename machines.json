@@ -1,0 +1,16 @@
+[
+  {
+    "id": "lathe",
+    "name": "车床",
+    "nameEn": "Lathe",
+    "description": "金属切削车床｜旋转主轴与卡盘作业",
+    "descriptionEn": "Metalworking lathe | Rotating spindle and chuck operations"
+  },
+  {
+    "id": "drill-press",
+    "name": "钻床",
+    "nameEn": "Drill Press",
+    "description": "台式钻床｜钻头旋转与工件夹持作业",
+    "descriptionEn": "Bench drill press | Rotating drill bit and workpiece clamping"
+  }
+]
