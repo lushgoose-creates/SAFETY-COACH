@@ -8,9 +8,11 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 COPY package.json package-lock.json ./
-# Allow native module scripts and force-compile better-sqlite3 for this container.
-RUN npm config set allow-scripts true \
-  && npm ci --omit=dev \
+# Use npm install (not ci) for resilience; force better-sqlite3 to compile from
+# source instead of downloading prebuilds (which can fail on Railway's network).
+ENV npm_config_build_from_source=true \
+  npm_config_foreground_scripts=true
+RUN npm install --omit=dev \
   && npm rebuild better-sqlite3
 
 # ---- Runtime stage ----
