@@ -26,8 +26,8 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY package.json package-lock.json ./
 COPY . .
 
-# App creates data/ on startup; mount a Railway volume here to persist data.
-VOLUME ["/app/data"]
+# Persistence: add a Railway Volume in the dashboard mounted at /app/data.
+# (Do not use the Docker VOLUME instruction — Railway manages storage itself.)
 
 EXPOSE 3000
 
