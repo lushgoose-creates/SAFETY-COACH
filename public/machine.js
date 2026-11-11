@@ -8,6 +8,7 @@
     machine: null,
     name: readStored('safetyCoachName'),
     studentId: readStored('safetyCoachStudentId'),
+    mode: readStored('safetyCoachMode') || 'student',
     quiz: null,
     lastQuestion: '',
     asking: false
@@ -23,10 +24,22 @@
     chatForm: document.getElementById('chat-form'),
     questionInput: document.getElementById('question-input'),
     askButton: document.getElementById('ask-button'),
+    chatNext: document.getElementById('chat-next'),
     quizQuestions: document.getElementById('quiz-questions'),
     quizSubmit: document.getElementById('quiz-submit'),
     resultCard: document.getElementById('result-card'),
-    retryQuiz: document.getElementById('retry-quiz')
+    retryQuiz: document.getElementById('retry-quiz'),
+    visitorDone: document.getElementById('visitor-done'),
+    identityForm: document.getElementById('identity-form'),
+    studentName: document.getElementById('student-name'),
+    studentId: document.getElementById('student-id'),
+    identitySubmit: document.getElementById('identity-submit'),
+    botFab: document.getElementById('ai-bot-fab'),
+    botPanel: document.querySelector('.ai-bot-panel'),
+    botClose: document.getElementById('ai-bot-close'),
+    botForm: document.getElementById('ai-bot-form'),
+    botInput: document.getElementById('ai-bot-input'),
+    botMessages: document.getElementById('ai-bot-messages')
   };
 
   function readStored(key) {
@@ -37,6 +50,7 @@
     try {
       localStorage.setItem('safetyCoachName', state.name);
       localStorage.setItem('safetyCoachStudentId', state.studentId);
+      localStorage.setItem('safetyCoachMode', state.mode);
     } catch {
       // The flow still works if private browsing blocks localStorage.
     }
@@ -55,11 +69,15 @@
   }
 
   function showScreen(name) {
-    const stepIndex = screens.indexOf(name);
+    const isVisitor = state.mode === 'visitor';
+    const stepOrder = isVisitor ? ['identity', 'briefing', 'chat', 'result'] : screens;
+    const stepIndex = stepOrder.indexOf(name);
     for (const screen of screens) {
       document.getElementById(`screen-${screen}`).hidden = screen !== name;
     }
     document.querySelectorAll('#step-progress li').forEach((item, index) => {
+      item.hidden = isVisitor && index === 3;
+      if (item.hidden) return;
       item.classList.toggle('active', index === stepIndex);
       item.classList.toggle('complete', stepIndex > index || name === 'result');
       if (index === stepIndex) item.setAttribute('aria-current', 'step');
@@ -250,6 +268,7 @@
       elements.resultCard.append(createElement('p', 'pass-note', t('passNote')));
     }
     elements.retryQuiz.hidden = result.passed;
+    elements.visitorDone.hidden = true;
   }
 
   function formatTime(value) {
@@ -261,18 +280,72 @@
 
   document.getElementById('identity-form').addEventListener('submit', (event) => {
     event.preventDefault();
-    const name = document.getElementById('student-name').value.trim();
-    const studentId = document.getElementById('student-id').value.trim();
-    if (!name || !studentId) return showAlert(t('identityRequired'));
-    if (!/^[\p{L}\p{N}_-]+$/u.test(studentId)) return showAlert(t('studentIdInvalid'));
+    const name = elements.studentName.value.trim();
+    const modeInput = document.querySelector('input[name="mode"]:checked');
+    const mode = modeInput ? modeInput.value : 'student';
+    const studentId = elements.studentId.value.trim();
+    if (!name) return showAlert(t('identityRequired'));
+    if (mode === 'student' && !studentId) return showAlert(t('identityRequired'));
+    if (studentId && !/^[\p{L}\p{N}_-]+$/u.test(studentId)) return showAlert(t('studentIdInvalid'));
     state.name = name;
-    state.studentId = studentId;
+    state.studentId = mode === 'student' ? studentId : '';
+    state.mode = mode;
     storeIdentity();
     loadBriefing();
   });
 
+  function updateModeUI() {
+    const isVisitor = state.mode === 'visitor';
+    elements.studentId.required = !isVisitor;
+    elements.studentId.disabled = isVisitor;
+    elements.studentId.value = isVisitor ? '' : elements.studentId.value;
+    elements.identitySubmit.textContent = isVisitor ? t('identitySubmitVisitor') : t('identitySubmit');
+    elements.chatNext.textContent = isVisitor ? t('visitorChatNext') : t('chatNext');
+    const checked = document.querySelector(`input[name="mode"][value="${state.mode}"]`);
+    if (checked) checked.checked = true;
+  }
+
+  function showVisitorResult() {
+    showScreen('result');
+    elements.resultCard.className = 'result-card visitor-card';
+    const badge = createElement('div', 'result-badge visitor-badge', t('modeVisitor'));
+    const title = createElement('h2', '', t('visitorResultTitle'));
+    const message = createElement('p', 'result-message', t('visitorResultMessage'));
+    const details = createElement('dl', 'result-details');
+    const rows = [
+      [t('resultName'), state.name],
+      [t('resultMachine'), state.machine.name],
+      [t('resultTime'), formatTime(new Date().toISOString())]
+    ];
+    rows.forEach(([label, value]) => {
+      details.append(createElement('dt', '', label), createElement('dd', '', value));
+    });
+    elements.resultCard.replaceChildren(badge, title, message, details);
+    elements.retryQuiz.hidden = true;
+    elements.visitorDone.hidden = false;
+  }
+
   elements.briefingNext.onclick = enterChat;
-  document.getElementById('chat-next').addEventListener('click', enterQuiz);
+  elements.chatNext.addEventListener('click', () => {
+    if (state.mode === 'visitor') showVisitorResult();
+    else enterQuiz();
+  });
+  elements.visitorDone.addEventListener('click', () => {
+    state.name = '';
+    state.studentId = '';
+    state.mode = 'student';
+    storeIdentity();
+    elements.studentName.value = '';
+    elements.studentId.value = '';
+    updateModeUI();
+    showScreen('identity');
+  });
+  document.querySelectorAll('input[name="mode"]').forEach((input) => {
+    input.addEventListener('change', () => {
+      state.mode = input.value;
+      updateModeUI();
+    });
+  });
   elements.chatForm.addEventListener('submit', (event) => {
     event.preventDefault();
     const question = elements.questionInput.value.trim();
@@ -308,14 +381,74 @@
   });
   elements.retryQuiz.addEventListener('click', enterQuiz);
 
+  /* ---------- Floating AI safety bot ---------- */
+  function openBot() {
+    elements.botPanel.hidden = false;
+    document.getElementById('ai-bot').setAttribute('aria-hidden', 'false');
+    if (!elements.botMessages.children.length) {
+      appendBotMessage('coach', t('botGreeting'));
+    }
+    elements.botInput.focus({ preventScroll: true });
+  }
+  function closeBot() {
+    elements.botPanel.hidden = true;
+    document.getElementById('ai-bot').setAttribute('aria-hidden', 'true');
+  }
+  function appendBotMessage(role, text, citedRules = [], unanswered = false) {
+    const bubble = createElement('div', `bot-msg ${role === 'user' ? 'you' : 'coach'}${unanswered ? ' unanswered-message' : ''}`);
+    bubble.textContent = text;
+    if (citedRules && citedRules.length) {
+      citedRules.forEach((rule) => {
+        const tag = createElement('span', 'bot-citation', t('rule', { number: rule }));
+        bubble.append(document.createElement('br'), tag);
+      });
+    }
+    elements.botMessages.append(bubble);
+    elements.botMessages.scrollTop = elements.botMessages.scrollHeight;
+    return bubble;
+  }
+  async function askBot(question) {
+    appendBotMessage('user', question);
+    elements.botInput.value = '';
+    const typing = createElement('div', 'bot-msg coach');
+    typing.innerHTML = '<span class="bot-typing"><span></span><span></span><span></span></span>';
+    elements.botMessages.append(typing);
+    elements.botMessages.scrollTop = elements.botMessages.scrollHeight;
+    try {
+      const data = await api('/api/ask', {
+        method: 'POST',
+        body: JSON.stringify({ machineId, question, lang })
+      });
+      typing.remove();
+      appendBotMessage('coach', data.answer, data.citedRules, !data.answered);
+    } catch (error) {
+      typing.remove();
+      appendBotMessage('coach', error.message);
+    }
+  }
+  elements.botFab.addEventListener('click', () => {
+    if (elements.botPanel.hidden) openBot(); else closeBot();
+  });
+  elements.botClose.addEventListener('click', closeBot);
+  elements.botForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const question = elements.botInput.value.trim();
+    if (!question) return;
+    askBot(question);
+  });
+
   async function initialize() {
+    updateModeUI();
+    elements.studentName.value = state.name;
+    elements.studentId.value = state.studentId;
     updateQuizProgress();
     try {
       state.machine = await api(withLang(`/api/machine/${encodeURIComponent(machineId)}`));
       elements.machineName.textContent = state.machine.name;
       elements.machineDescription.textContent = state.machine.description;
       document.title = t('machineTitle', { machine: state.machine.name });
-      if (state.name && state.studentId) {
+      const canAutoStart = state.mode === 'visitor' ? state.name : (state.name && state.studentId);
+      if (canAutoStart) {
         loadBriefing();
       } else {
         showScreen('identity');
@@ -323,7 +456,7 @@
     } catch (error) {
       showScreen('identity');
       showAlert(error.message);
-      document.getElementById('identity-form').querySelector('button').disabled = true;
+      elements.identitySubmit.disabled = true;
     }
   }
 

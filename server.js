@@ -315,12 +315,17 @@ app.get('/qr', asyncRoute(async (req, res) => {
   <script src="/qr.js" defer></script>
 </head>
 <body class="qr-page">
-  <header class="qr-header no-print">
-    <span class="eyebrow">SCAN-TO-ASK SAFETY COACH</span>
+  <div class="safety-stripe" aria-hidden="true"></div>
+  <header class="machine-header qr-header no-print">
+    <div class="brand-row">
+      <span class="brand-mark">安</span>
+      <span>${english ? 'Scan Safety Coach' : '扫码安全官'}</span>
+      <a class="language-toggle" href="${english ? '/qr?lang=zh' : '/qr?lang=en'}">${english ? '中文' : 'English'}</a>
+    </div>
     <h1>${english ? 'Machine QR Codes' : '设备二维码'}</h1>
     <p>${english ? 'Print and place beside each machine. Each code opens only that machine’s safety page.' : '打印后贴在对应设备旁。扫码只会打开该设备的安全页面。'}</p>
     ${localhostWarning ? `<div class="warning-banner"><strong>${english ? 'WARNING' : '注意'}</strong><span>${english ? 'PUBLIC_BASE_URL is localhost — phones cannot open these QR codes. Set it to your computer LAN IP or a tunnel URL and restart before printing.' : 'PUBLIC_BASE_URL 是 localhost，手机无法打开这些二维码。请改为电脑局域网 IP 或隧道地址后重启再打印。'}</span></div>` : ''}
-    <div class="toolbar"><button id="print-button" class="button primary" type="button">${english ? 'Print all QR codes' : '打印全部二维码'}</button><a class="button secondary" href="${english ? '/admin?lang=en' : '/admin?lang=zh'}">${english ? 'Instructor dashboard' : '教师仪表盘'}</a><a class="button secondary" href="${english ? '/qr?lang=zh' : '/qr?lang=en'}">${english ? '中文' : 'English'}</a></div>
+    <div class="toolbar"><button id="print-button" class="button primary" type="button">${english ? 'Print all QR codes' : '打印全部二维码'}</button><a class="button secondary" href="${english ? '/admin?lang=en' : '/admin?lang=zh'}">${english ? 'Instructor dashboard' : '教师仪表盘'}</a></div>
     <p class="base-url">${english ? 'QR base URL:' : '二维码地址前缀：'}<strong>${escapeHtml(baseUrl)}</strong></p>
   </header>
   <main class="qr-grid">

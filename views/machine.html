@@ -32,11 +32,16 @@
     <section id="screen-identity" class="flow-screen">
       <div class="section-heading"><span class="eyebrow" data-i18n="identityEyebrow">STEP 01 · 身份登记</span><h2 data-i18n="identityTitle">开始本机安全准入</h2><p data-i18n="identityDescription">信息仅用于本次实训小测记录。</p></div>
       <form id="identity-form" class="card form-card">
+        <label class="block-label" data-i18n="identityModeLabel">来访模式</label>
+        <div class="mode-switch" role="radiogroup">
+          <label class="mode-option"><input type="radio" name="mode" value="student" checked><span class="mode-box"><strong data-i18n="modeStudent">学生</strong><small data-i18n="modeStudentDesc">完成小测后可上岗</small></span></label>
+          <label class="mode-option"><input type="radio" name="mode" value="visitor"><span class="mode-box"><strong data-i18n="modeVisitor">访客</strong><small data-i18n="modeVisitorDesc">只看规程和问答，不参加小测</small></span></label>
+        </div>
         <label for="student-name" data-i18n="nameLabel">姓名</label>
         <input id="student-name" name="name" type="text" autocomplete="name" maxlength="40" placeholder="请输入真实姓名" data-i18n-placeholder="namePlaceholder" required>
         <label for="student-id" data-i18n="studentIdLabel">学号</label>
-        <input id="student-id" name="studentId" type="text" autocomplete="off" maxlength="30" placeholder="请输入学号" data-i18n-placeholder="studentIdPlaceholder" required>
-        <div class="sticky-action"><button class="button primary full-width" type="submit" data-i18n="identitySubmit">确认身份，查看安全简报</button></div>
+        <input id="student-id" name="studentId" type="text" autocomplete="off" maxlength="30" placeholder="请输入学号" data-i18n-placeholder="studentIdPlaceholder">
+        <div class="sticky-action"><button id="identity-submit" class="button primary full-width" type="submit" data-i18n="identitySubmit">确认身份，查看安全简报</button></div>
       </form>
     </section>
 
@@ -70,9 +75,28 @@
 
     <section id="screen-result" class="flow-screen" hidden>
       <div id="result-card" class="result-card" aria-live="polite"></div>
-      <div class="sticky-action"><button id="retry-quiz" class="button primary full-width" type="button" data-i18n="retryQuiz" hidden>复习后重新测验</button></div>
+      <div class="sticky-action">
+        <button id="retry-quiz" class="button primary full-width" type="button" data-i18n="retryQuiz" hidden>复习后重新测验</button>
+        <button id="visitor-done" class="button primary full-width" type="button" data-i18n="visitorDone" hidden>返回首页</button>
+      </div>
     </section>
   </main>
+
+  <div id="ai-bot" class="ai-bot" aria-hidden="true">
+    <button id="ai-bot-fab" class="ai-bot-fab" type="button" aria-label="安全官助手">
+      <span class="bot-face"><span class="bot-eye left"></span><span class="bot-eye right"></span><span class="bot-mouth"></span></span>
+      <span class="bot-ping"></span>
+      <span class="bot-hint" data-i18n="botHint">点击我随时提问</span>
+    </button>
+    <div class="ai-bot-panel" role="dialog" aria-label="安全官助手" hidden>
+      <div class="ai-bot-head"><span class="bot-avatar"><span class="bot-face small"><span class="bot-eye left"></span><span class="bot-eye right"></span><span class="bot-mouth"></span></span></span><strong data-i18n="botName">安全官助手</strong><button id="ai-bot-close" class="ai-bot-close" type="button" aria-label="关闭">×</button></div>
+      <div id="ai-bot-messages" class="ai-bot-messages" aria-live="polite"></div>
+      <form id="ai-bot-form" class="ai-bot-form">
+        <input id="ai-bot-input" type="text" maxlength="300" placeholder="问一个关于本机的安全问题…" data-i18n-placeholder="botPlaceholder" autocomplete="off">
+        <button class="button primary" type="submit" data-i18n="botSend">发送</button>
+      </form>
+    </div>
+  </div>
 
   <footer class="footer" data-i18n="footer">答案仅依据实训中心安全规程，不确定时请询问指导老师</footer>
 </body>
