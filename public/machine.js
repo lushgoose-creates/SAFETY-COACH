@@ -34,6 +34,7 @@
     studentName: document.getElementById('student-name'),
     studentId: document.getElementById('student-id'),
     identitySubmit: document.getElementById('identity-submit'),
+    flowBack: document.getElementById('flow-back'),
     botFab: document.getElementById('ai-bot-fab'),
     botPanel: document.querySelector('.ai-bot-panel'),
     botClose: document.getElementById('ai-bot-close'),
@@ -84,6 +85,14 @@
       else item.removeAttribute('aria-current');
     });
     showAlert('');
+    const backTargets = isVisitor
+      ? { briefing: 'identity', chat: 'briefing', result: 'chat' }
+      : { briefing: 'identity', chat: 'briefing', quiz: 'chat' };
+    const backTarget = backTargets[name];
+    if (elements.flowBack) {
+      elements.flowBack.dataset.target = backTarget || '';
+      elements.flowBack.hidden = !backTarget;
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -326,6 +335,15 @@
   }
 
   elements.briefingNext.onclick = enterChat;
+  elements.flowBack.addEventListener('click', () => {
+    const target = elements.flowBack.dataset.target;
+    if (!target) return;
+    if (target === 'briefing' && (!elements.briefingList.children.length || elements.briefingList.querySelector('.loading-card'))) {
+      loadBriefing();
+      return;
+    }
+    showScreen(target);
+  });
   elements.chatNext.addEventListener('click', () => {
     if (state.mode === 'visitor') showVisitorResult();
     else enterQuiz();
@@ -382,18 +400,111 @@
   elements.retryQuiz.addEventListener('click', enterQuiz);
 
   /* ---------- Floating AI safety bot ---------- */
+  const botRoot = document.getElementById('ai-bot');
+  let botDrag = null;
+  let suppressBotClick = false;
+
+  function positionBotPanel() {
+    const panel = elements.botPanel;
+    if (panel.hidden) return;
+    const fab = elements.botFab.getBoundingClientRect();
+    const margin = 12;
+    const gap = 12;
+    const width = panel.offsetWidth;
+    const height = panel.offsetHeight;
+    let left = fab.right - width;
+    left = Math.min(Math.max(left, margin), Math.max(margin, window.innerWidth - width - margin));
+    let top = fab.top - height - gap;
+    if (top < margin) top = fab.bottom + gap;
+    top = Math.min(Math.max(top, margin), Math.max(margin, window.innerHeight - height - margin));
+    panel.style.left = `${Math.round(left)}px`;
+    panel.style.top = `${Math.round(top)}px`;
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
+  }
+
   function openBot() {
     elements.botPanel.hidden = false;
-    document.getElementById('ai-bot').setAttribute('aria-hidden', 'false');
+    botRoot.setAttribute('aria-hidden', 'false');
     if (!elements.botMessages.children.length) {
       appendBotMessage('coach', t('botGreeting'));
     }
+    positionBotPanel();
     elements.botInput.focus({ preventScroll: true });
   }
   function closeBot() {
     elements.botPanel.hidden = true;
-    document.getElementById('ai-bot').setAttribute('aria-hidden', 'true');
+    botRoot.setAttribute('aria-hidden', 'true');
   }
+
+  function moveBot(left, top) {
+    const width = botRoot.offsetWidth;
+    const height = botRoot.offsetHeight;
+    const clampedLeft = Math.min(Math.max(left, 8), Math.max(8, window.innerWidth - width - 8));
+    const clampedTop = Math.min(Math.max(top, 8), Math.max(8, window.innerHeight - height - 8));
+    botRoot.style.left = `${Math.round(clampedLeft)}px`;
+    botRoot.style.top = `${Math.round(clampedTop)}px`;
+    botRoot.style.right = 'auto';
+    botRoot.style.bottom = 'auto';
+    if (!elements.botPanel.hidden) positionBotPanel();
+  }
+
+  function saveBotPosition() {
+    try {
+      const rect = botRoot.getBoundingClientRect();
+      localStorage.setItem('safetyCoachBotPosition', JSON.stringify({ left: rect.left, top: rect.top }));
+    } catch {
+      // Position memory is optional.
+    }
+  }
+
+  function restoreBotPosition() {
+    let saved = null;
+    try { saved = JSON.parse(readStored('safetyCoachBotPosition') || 'null'); } catch { saved = null; }
+    if (saved && Number.isFinite(saved.left) && Number.isFinite(saved.top)) moveBot(saved.left, saved.top);
+  }
+
+  elements.botFab.addEventListener('pointerdown', (event) => {
+    if (event.button > 0) return;
+    suppressBotClick = false;
+    const rect = botRoot.getBoundingClientRect();
+    botDrag = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originLeft: rect.left,
+      originTop: rect.top,
+      moved: false
+    };
+    try { elements.botFab.setPointerCapture(event.pointerId); } catch { /* ignored */ }
+  });
+
+  elements.botFab.addEventListener('pointermove', (event) => {
+    if (!botDrag || event.pointerId !== botDrag.pointerId) return;
+    const dx = event.clientX - botDrag.startX;
+    const dy = event.clientY - botDrag.startY;
+    if (!botDrag.moved && Math.hypot(dx, dy) < 6) return;
+    if (!botDrag.moved) {
+      botDrag.moved = true;
+      botRoot.classList.add('dragging');
+    }
+    moveBot(botDrag.originLeft + dx, botDrag.originTop + dy);
+  });
+
+  function endBotDrag(event) {
+    if (!botDrag || event.pointerId !== botDrag.pointerId) return;
+    const moved = botDrag.moved;
+    botDrag = null;
+    botRoot.classList.remove('dragging');
+    try { elements.botFab.releasePointerCapture(event.pointerId); } catch { /* ignored */ }
+    if (moved) {
+      suppressBotClick = true;
+      saveBotPosition();
+    }
+  }
+  elements.botFab.addEventListener('pointerup', endBotDrag);
+  elements.botFab.addEventListener('pointercancel', endBotDrag);
+
   function appendBotMessage(role, text, citedRules = [], unanswered = false) {
     const bubble = createElement('div', `bot-msg ${role === 'user' ? 'you' : 'coach'}${unanswered ? ' unanswered-message' : ''}`);
     bubble.textContent = text;
@@ -427,9 +538,15 @@
     }
   }
   elements.botFab.addEventListener('click', () => {
+    if (suppressBotClick) { suppressBotClick = false; return; }
     if (elements.botPanel.hidden) openBot(); else closeBot();
   });
   elements.botClose.addEventListener('click', closeBot);
+  window.addEventListener('resize', () => {
+    if (botRoot.style.left) moveBot(parseFloat(botRoot.style.left), parseFloat(botRoot.style.top));
+    if (!elements.botPanel.hidden) positionBotPanel();
+  });
+  restoreBotPosition();
   elements.botForm.addEventListener('submit', (event) => {
     event.preventDefault();
     const question = elements.botInput.value.trim();
