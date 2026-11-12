@@ -105,6 +105,7 @@
 @media (max-width: 480px) {
   .blueprint-viewer { height: 52vh; min-height: 280px; }
   .bp-btn { padding: 5px 8px; font-size: 11px; }
+  .bp-demo-ppe-img { bottom: 104px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .blueprint-viewer { transition: none; }
