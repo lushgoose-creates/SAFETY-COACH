@@ -1,12 +1,13 @@
 require('dotenv').config();
 
 const path = require('node:path');
+const fs = require('node:fs');
 const crypto = require('node:crypto');
 const express = require('express');
 const QRCode = require('qrcode');
 const db = require('./src/db');
 const { getMachine, listMachines } = require('./src/machines');
-const { getBriefing, getQuiz, answerQuestion } = require('./src/safety-content');
+const { getBriefing, getRules, getQuiz, answerQuestion } = require('./src/safety-content');
 const { getStats, attemptsCsv } = require('./src/admin');
 const { isAiConfigured } = require('./src/ai');
 const { language, machineView } = require('./src/language');
@@ -48,11 +49,13 @@ function msg(req, key) {
 
 app.disable('x-powered-by');
 app.use((req, res, next) => {
+  const nonce = crypto.randomBytes(16).toString('base64');
+  res.locals.nonce = nonce;
   res.set({
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'no-referrer',
-    'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+    'Content-Security-Policy': `default-src 'self'; script-src 'self' 'nonce-${nonce}'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'`
   });
   next();
 });
@@ -69,6 +72,16 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function importMapTag(nonce) {
+  const map = {
+    imports: {
+      three: '/three/build/three.module.js',
+      'three/addons/': '/three/examples/jsm/'
+    }
+  };
+  return `<script type="importmap" nonce="${nonce}">${JSON.stringify(map)}</script>`;
 }
 
 function cleanText(value, maxLength) {
@@ -147,7 +160,9 @@ app.get('/m/:machineId', (req, res) => {
   if (!getMachine(req.params.machineId)) {
     return res.status(404).send(msg(req, 'machineNotFound'));
   }
-  res.sendFile(path.join(rootDir, 'views', 'machine.html'));
+  let html = fs.readFileSync(path.join(rootDir, 'views', 'machine.html'), 'utf8');
+  html = html.replace('__IMPORTMAP__', importMapTag(res.locals.nonce));
+  res.type('html').send(html);
 });
 
 app.get('/api/machine/:machineId', (req, res) => {
@@ -162,6 +177,12 @@ app.get('/api/briefing/:machineId', asyncRoute(async (req, res) => {
   if (!machine) return;
   res.json(await getBriefing(machine, lang(req)));
 }));
+
+app.get('/api/rules/:machineId', (req, res) => {
+  const machine = validMachine(req, res);
+  if (!machine) return;
+  res.json({ rules: getRules(machine, lang(req)) });
+});
 
 app.post('/api/ask', askRateLimit, asyncRoute(async (req, res) => {
   const machine = getMachine(req.body?.machineId);
@@ -344,6 +365,8 @@ app.get('/qr', asyncRoute(async (req, res) => {
   res.type('html').send(html);
 }));
 
+app.use('/three/build', express.static(path.join(rootDir, 'node_modules', 'three', 'build'), { index: false, maxAge: '1d' }));
+app.use('/three/examples/jsm', express.static(path.join(rootDir, 'node_modules', 'three', 'examples', 'jsm'), { index: false, maxAge: '1d' }));
 app.use(express.static(path.join(rootDir, 'public'), { index: false, maxAge: 0 }));
 app.use((req, res) => {
   if (req.path.startsWith('/api/')) return res.status(404).json({ error: msg(req, 'apiNotFound') });

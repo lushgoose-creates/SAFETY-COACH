@@ -370,10 +370,22 @@ ${sopText}`;
   return { answer: outOfScope, citedRules: [], answered: false };
 }
 
+function getRules(machine, lang = 'zh') {
+  lang = language(lang);
+  const { text: sopText } = readSop(machine);
+  const english = lang === 'en';
+  const enSopPath = path.join(__dirname, '..', 'sops', `${machine.id}.en.md`);
+  const rulesText = english && fs.existsSync(enSopPath)
+    ? fs.readFileSync(enSopPath, 'utf8').replace(/\r\n/g, '\n')
+    : sopText;
+  return parseRules(rulesText).map((rule) => ({ number: rule.number, text: rule.text }));
+}
+
 module.exports = {
   OUT_OF_SCOPE_ANSWER: OUT_OF_SCOPE_ANSWERS.zh,
   OUT_OF_SCOPE_ANSWERS,
   getBriefing,
+  getRules,
   getQuiz,
   answerQuestion
 };

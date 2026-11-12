@@ -40,7 +40,11 @@
     botClose: document.getElementById('ai-bot-close'),
     botForm: document.getElementById('ai-bot-form'),
     botInput: document.getElementById('ai-bot-input'),
-    botMessages: document.getElementById('ai-bot-messages')
+    botMessages: document.getElementById('ai-bot-messages'),
+    rulesPanel: document.getElementById('rules-panel'),
+    rulesToggle: document.getElementById('rules-toggle'),
+    rulesList: document.getElementById('rules-list'),
+    rulesCount: document.querySelector('#rules-panel .rules-count')
   };
 
   function readStored(key) {
@@ -135,6 +139,50 @@
         loadBriefing();
       };
     }
+  }
+
+  /* ---------- Safety rules list with demo buttons ---------- */
+  async function loadRules() {
+    try {
+      const data = await api(withLang(`/api/rules/${encodeURIComponent(machineId)}`));
+      renderRules(data.rules || []);
+    } catch (error) {
+      elements.rulesCount.textContent = '';
+      elements.rulesList.replaceChildren(createElement('div', 'card error-card', error.message));
+    }
+  }
+
+  function renderRules(rules) {
+    elements.rulesCount.textContent = t('rulesCount', { count: rules.length });
+    const fragment = document.createDocumentFragment();
+    rules.forEach((rule) => {
+      const card = createElement('div', 'rule-card');
+      card.append(createElement('span', 'rule-num', t('rule', { number: rule.number })));
+      card.append(createElement('p', 'rule-text', rule.text));
+      if (window.SafetyCoachDemos && window.SafetyCoachDemos.hasDemo(machineId, rule.number)) {
+        const btn = createElement('button', 'rule-demo-btn', t('demoPlay'));
+        btn.type = 'button';
+        btn.dataset.rule = String(rule.number);
+        card.append(btn);
+      }
+      fragment.append(card);
+    });
+    elements.rulesList.replaceChildren(fragment);
+  }
+
+  async function playRuleDemo(ruleNumber, ruleText) {
+    const blueprint = document.getElementById('blueprint-panel');
+    let viewer = window.SafetyCoach3D;
+    if (!viewer && window.getSafetyCoach3D) {
+      if (blueprint && blueprint.dataset.collapsed === 'true') {
+        const toggle = document.getElementById('blueprint-toggle');
+        if (toggle) toggle.click();
+      }
+      try { viewer = await window.getSafetyCoach3D(); } catch { viewer = null; }
+    }
+    if (blueprint) blueprint.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!viewer || !viewer.playRuleDemo) return;
+    viewer.playRuleDemo(machineId, ruleNumber, ruleText);
   }
 
   function enterChat() {
@@ -398,6 +446,21 @@
     }
   });
   elements.retryQuiz.addEventListener('click', enterQuiz);
+  elements.rulesToggle.addEventListener('click', () => {
+    const collapsed = elements.rulesPanel.dataset.collapsed === 'true';
+    const next = !collapsed;
+    elements.rulesPanel.dataset.collapsed = String(next);
+    elements.rulesToggle.setAttribute('aria-expanded', String(!next));
+    const label = elements.rulesToggle.querySelector('span');
+    if (label) label.textContent = t(next ? 'rulesCollapse' : 'rulesExpand');
+  });
+  elements.rulesList.addEventListener('click', (event) => {
+    const btn = event.target.closest('.rule-demo-btn');
+    if (!btn || !btn.dataset.rule) return;
+    const card = btn.closest('.rule-card');
+    const text = card && card.querySelector('.rule-text') ? card.querySelector('.rule-text').textContent : '';
+    playRuleDemo(Number(btn.dataset.rule), text);
+  });
 
   /* ---------- Floating AI safety bot ---------- */
   const botRoot = document.getElementById('ai-bot');
@@ -559,6 +622,7 @@
     elements.studentName.value = state.name;
     elements.studentId.value = state.studentId;
     updateQuizProgress();
+    loadRules();
     try {
       state.machine = await api(withLang(`/api/machine/${encodeURIComponent(machineId)}`));
       elements.machineName.textContent = state.machine.name;

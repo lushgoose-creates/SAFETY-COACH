@@ -5,9 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#ffd429">
   <title>设备安全准入｜扫码安全官</title>
+  __IMPORTMAP__
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/3d/viewer.css">
   <script src="/i18n.js" defer></script>
+  <script src="/3d/demos.js" defer></script>
   <script src="/machine.js" defer></script>
+  <script type="module" src="/3d/boot.js"></script>
 </head>
 <body class="student-page" data-page="machine">
   <div class="safety-stripe" aria-hidden="true"></div>
@@ -16,6 +20,28 @@
     <h1 id="machine-name" data-i18n="identifyingMachine">正在识别设备…</h1>
     <p id="machine-description" data-i18n="pleaseWait">请稍候</p>
   </header>
+
+  <section id="blueprint-panel" class="blueprint-panel" data-collapsed="false">
+    <div class="blueprint-bar">
+      <div class="blueprint-heading">
+        <strong data-i18n="blueprintTitle">设备结构蓝图</strong>
+        <span data-i18n="blueprintSub">旋转、缩放查看设备部件</span>
+      </div>
+      <button id="blueprint-toggle" class="blueprint-toggle" type="button" aria-expanded="true"><span data-i18n="blueprintCollapse">收起</span></button>
+    </div>
+    <div id="blueprint-viewer" class="blueprint-viewer"></div>
+  </section>
+
+  <section id="rules-panel" class="rules-panel" data-collapsed="true">
+    <div class="rules-bar">
+      <div class="rules-heading">
+        <strong data-i18n="rulesTitle">安全规程</strong>
+        <span class="rules-count"></span>
+      </div>
+      <button id="rules-toggle" class="rules-toggle" type="button" aria-expanded="false"><span data-i18n="rulesExpand">查看全部安全规程并观看演示</span></button>
+    </div>
+    <div id="rules-list" class="rules-list"></div>
+  </section>
 
   <nav class="step-nav" aria-label="安全准入进度" data-i18n-aria-label="progressLabel">
     <ol id="step-progress">
