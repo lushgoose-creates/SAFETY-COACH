@@ -112,7 +112,7 @@
       reviewTitle: 'Human review', reviewDesc: 'The AI cannot publish. The instructor must check every rule, tick the confirmations, and sign.',
       reviewerLabel: 'Reviewer name', reviewerPlaceholder: 'Real name (2-20 characters)',
       confirmRules: 'I checked every rule. Nothing is wrong or invented.',
-      confirmRequirements: 'This SOP matches the training center’s real requirements.',
+      confirmRequirements: 'This SOP matches the training center\'s real requirements.',
       confirmGaps: 'I know some questions are still unanswered and I still want to approve.',
       submitReview: 'Submit for review',
       publishTitle: 'Publish to Safety Coach', publishDesc: 'Publishing writes the student-facing SOP page and regenerates the briefing and quiz.',
