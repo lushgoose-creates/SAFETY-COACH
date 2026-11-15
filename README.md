@@ -193,4 +193,34 @@ Run `clear-demo` before the judged live demonstration.
 | Quiz submission says questions changed | Reload and answer the current three questions. The SOP or admin regeneration may have changed the cache. |
 | Need a clean local database | Stop the server, back up `data/safety.db`, then delete it if you intentionally want to erase all attempts/logs. Restart to recreate empty tables. |
 
+## 12. SOP工作室（SOP Studio）
+
+“老师傅说一遍，安全官教一万遍。” The SOP Studio turns a master's 口述 (dictation) into an approved, published SOP. The core rule: **AI drafts, a human approves — AI never publishes by itself.** There is no code path that publishes a draft the server has not marked `approved`.
+
+Open `/studio` (same `admin` / `ADMIN_PASSWORD` sign-in as `/admin`).
+
+Workflow:
+
+1. **口述** — paste the master's dictation and click **AI 起草**. Without an API key, click **载入演示示例并起草** to use the built-in canned sample instead.
+2. **编辑** — review every rule. Any rule marked **AI建议·待确认** must be checked off (confirmed) before approval. Answer the 待补充问题 (gaps), or leave them and acknowledge them at approval.
+3. **审核** — enter a real reviewer name and tick the two confirmations (plus the gaps acknowledgement when any gap is unanswered). The server refuses to approve otherwise.
+4. **发布** — only an `approved` draft can publish. Publishing atomically writes the SOP file and `machines.json`, records a version, regenerates the briefing/quiz caches, and shows the student QR code. The machine page then shows an **“已通过教师审核 · 第N版”** trust badge.
+
+Publishing a machine that already exists creates a **new version** and supports rollback from the list page. Student Q&A is unchanged: a question the SOP does not cover still escalates to the dashboard, where **据此起草** opens a prefilled studio draft.
+
+Demo data (offline, never spends API credits):
+
+```powershell
+npm run seed-studio-demo    # one canned draft (machine id `demo-drill`)
+npm run clear-studio-demo   # removes everything the demo created
+```
+
+Tests:
+
+```powershell
+npm run test:studio
+```
+
+Safety guarantees: all AI output is treated as untrusted (escaped on render, sanitized and truncated server-side); publish is atomic (temp file + rename with a `.bak`); every approval/publish/rollback is written to `audit_log`.
+
 Before the event, work through `TESTING.md`, pre-open the dashboard and QR page, and cache both machines' briefing/quiz content in every language you will demonstrate.

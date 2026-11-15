@@ -9,6 +9,7 @@ const db = require('./src/db');
 const { getMachine, listMachines } = require('./src/machines');
 const { getBriefing, getRules, getQuiz, answerQuestion } = require('./src/safety-content');
 const { getStats, attemptsCsv } = require('./src/admin');
+const studio = require('./src/studio');
 const { isAiConfigured } = require('./src/ai');
 const { language, machineView } = require('./src/language');
 
@@ -169,7 +170,7 @@ app.get('/api/machine/:machineId', (req, res) => {
   const machine = validMachine(req, res);
   if (!machine) return;
   const view = machineView(machine, lang(req));
-  res.json({ id: machine.id, name: view.name, description: view.description });
+  res.json({ id: machine.id, name: view.name, description: view.description, approval: studio.machineApproval(machine.id) });
 });
 
 app.get('/api/briefing/:machineId', asyncRoute(async (req, res) => {
@@ -363,6 +364,87 @@ app.get('/qr', asyncRoute(async (req, res) => {
 </body>
 </html>`;
   res.type('html').send(html);
+}));
+
+// ---- SOP Studio: AI drafts, a human approves, AI NEVER publishes by itself ----
+app.get('/studio', adminAuth, (req, res) => res.sendFile(path.join(rootDir, 'views', 'studio.html')));
+app.get('/studio/new', adminAuth, (req, res) => res.sendFile(path.join(rootDir, 'views', 'studio-editor.html')));
+app.get('/studio/:draftId', adminAuth, (req, res) => res.sendFile(path.join(rootDir, 'views', 'studio-editor.html')));
+app.use('/api/studio', adminAuth);
+
+app.get('/api/studio/list', (req, res) => res.json({ machines: studio.listStudio() }));
+app.get('/api/studio/stats', (req, res) => res.json(studio.studioStats()));
+app.get('/api/studio/sample', (req, res) => res.json({ transcript: studio.SAMPLE_TRANSCRIPT, draft: studio.SAMPLE_DRAFT }));
+app.get('/api/studio/unanswered', (req, res) => res.json({ questions: studio.listUnansweredQuestions() }));
+
+app.get('/api/studio/draft/:id', (req, res) => {
+  const draft = studio.getDraftPublic(req.params.id);
+  if (!draft) return res.status(404).json({ error: '草稿不存在。' });
+  res.json(draft);
+});
+
+app.get('/api/studio/versions/:machineId', (req, res) => {
+  res.json({ versions: studio.listVersions(req.params.machineId) });
+});
+
+app.post('/api/studio/draft', asyncRoute(async (req, res) => {
+  const result = await studio.createDraft({
+    machineNameZh: req.body?.machineNameZh,
+    machineId: req.body?.machineId,
+    transcript: req.body?.transcript,
+    demo: req.body?.demo === true
+  });
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json(result);
+}));
+
+app.post('/api/studio/gaps', asyncRoute(async (req, res) => {
+  const result = await studio.answerGaps(req.body?.draftId, req.body?.answers);
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json(result);
+}));
+
+app.put('/api/studio/draft/:id', (req, res) => {
+  const result = studio.saveDraft(req.params.id, req.body);
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json(result);
+});
+
+app.post('/api/studio/approve', (req, res) => {
+  const result = studio.approveDraft(req.body?.draftId, {
+    reviewerName: req.body?.reviewerName,
+    confirmations: req.body?.confirmations
+  });
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json(result);
+});
+
+app.post('/api/studio/publish', asyncRoute(async (req, res) => {
+  const result = await studio.publishDraft(req.body?.draftId);
+  if (result.error) return res.status(400).json({ error: result.error });
+
+  // Regenerate AI briefing/quiz caches in the background so the new machine is
+  // ready for students without blocking the publish response.
+  const machine = getMachine(result.machineId);
+  if (machine) {
+    getBriefing(machine, 'zh').catch(() => {});
+    getBriefing(machine, 'en').catch(() => {});
+    getQuiz(machine, { lang: 'zh' }).catch(() => {});
+    getQuiz(machine, { lang: 'en' }).catch(() => {});
+  }
+
+  const studentUrl = `${publicBaseUrl()}/m/${encodeURIComponent(result.machineId)}`;
+  const qrDataUrl = await QRCode.toDataURL(studentUrl, {
+    width: 320, margin: 2, errorCorrectionLevel: 'M',
+    color: { dark: '#111111', light: '#ffffff' }
+  });
+  res.json({ ...result, studentUrl, qrDataUrl });
+}));
+
+app.post('/api/studio/rollback', asyncRoute(async (req, res) => {
+  const result = await studio.rollbackMachine(req.body?.machineId, req.body?.version);
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json(result);
 }));
 
 app.use('/three/build', express.static(path.join(rootDir, 'node_modules', 'three', 'build'), { index: false, maxAge: '1d' }));

@@ -46,6 +46,46 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_attempts_machine ON attempts(machine_id, created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_questions_created_at ON questions_log(created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_questions_answered ON questions_log(answered, created_at DESC);
+
+  CREATE TABLE IF NOT EXISTS sop_drafts (
+    id TEXT PRIMARY KEY,
+    machine_id TEXT,
+    machine_name_zh TEXT NOT NULL,
+    transcript TEXT NOT NULL DEFAULT '',
+    draft_json TEXT NOT NULL DEFAULT '{}',
+    status TEXT NOT NULL DEFAULT 'draft'
+      CHECK (status IN ('draft', 'in_review', 'approved', 'published', 'rejected')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS sop_versions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    machine_id TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    sop_markdown TEXT NOT NULL,
+    rules_json TEXT NOT NULL,
+    approved_by TEXT NOT NULL,
+    approved_at TEXT NOT NULL,
+    source_draft_id TEXT,
+    change_note TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (machine_id, version)
+  );
+
+  CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    machine_id TEXT,
+    action TEXT NOT NULL,
+    actor TEXT,
+    detail_json TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_sop_drafts_status ON sop_drafts(status, updated_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_sop_drafts_machine ON sop_drafts(machine_id);
+  CREATE INDEX IF NOT EXISTS idx_sop_versions_machine ON sop_versions(machine_id, version DESC);
+  CREATE INDEX IF NOT EXISTS idx_audit_log_machine ON audit_log(machine_id, created_at DESC);
 `);
 
 module.exports = db;

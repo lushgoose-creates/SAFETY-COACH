@@ -41,6 +41,8 @@ h1, h2, h3 { line-height: 1.25; }
 .machine-header .language-toggle:hover { border-color: var(--yellow); color: var(--yellow); }
 .machine-header h1 { margin: 20px 0 5px; font-size: clamp(32px, 9vw, 46px); letter-spacing: -0.03em; }
 .machine-header p { margin: 0; color: #c5cabd; font-size: 14px; }
+.machine-trust { display: inline-flex; align-items: center; gap: 7px; margin-top: 12px; padding: 5px 12px; border: 1px solid #3f9d62; border-radius: 20px; color: #c7f5d6; background: rgba(22, 131, 75, 0.22); font-size: 12px; font-weight: 800; }
+.machine-trust::before { content: "✓"; display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; color: var(--ink); background: #52d98a; font-size: 10px; }
 
 .step-nav { padding: 18px 20px 4px; background: var(--surface); }
 .step-nav ol { display: grid; grid-template-columns: repeat(4, 1fr); padding: 0; margin: 0; list-style: none; }

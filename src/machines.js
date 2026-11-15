@@ -3,21 +3,38 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 const rootDir = path.join(__dirname, '..');
-const machines = JSON.parse(fs.readFileSync(path.join(rootDir, 'machines.json'), 'utf8'));
-const byId = new Map();
+const machinesPath = path.join(rootDir, 'machines.json');
 
-for (const machine of machines) {
-  if (!/^[a-z0-9][a-z0-9-]{0,49}$/.test(machine.id) || byId.has(machine.id)) {
-    throw new Error(`Invalid or duplicate machine id: ${machine.id}`);
+function loadMachinesList() {
+  return JSON.parse(fs.readFileSync(machinesPath, 'utf8'));
+}
+
+function buildById(list) {
+  const map = new Map();
+  for (const machine of list) {
+    if (!/^[a-z0-9][a-z0-9-]{0,49}$/.test(machine.id) || map.has(machine.id)) {
+      throw new Error(`Invalid or duplicate machine id: ${machine.id}`);
+    }
+    if (!machine.name || !machine.description) {
+      throw new Error(`Machine ${machine.id} needs a name and description`);
+    }
+    const sopPath = path.join(rootDir, 'sops', `${machine.id}.md`);
+    if (!fs.existsSync(sopPath)) {
+      throw new Error(`Missing SOP file: ${sopPath}`);
+    }
+    map.set(machine.id, { ...machine, sopPath });
   }
-  if (!machine.name || !machine.description) {
-    throw new Error(`Machine ${machine.id} needs a name and description`);
-  }
-  const sopPath = path.join(rootDir, 'sops', `${machine.id}.md`);
-  if (!fs.existsSync(sopPath)) {
-    throw new Error(`Missing SOP file: ${sopPath}`);
-  }
-  byId.set(machine.id, { ...machine, sopPath });
+  return map;
+}
+
+let machines = loadMachinesList();
+let byId = buildById(machines);
+
+// Reload machines.json + SOP map at runtime (used after publishing a new SOP).
+function reloadMachines() {
+  machines = loadMachinesList();
+  byId = buildById(machines);
+  return machines.length;
 }
 
 function getMachine(id) {
@@ -36,4 +53,4 @@ function readSop(machine) {
   return { text, hash };
 }
 
-module.exports = { getMachine, listMachines, readSop };
+module.exports = { getMachine, listMachines, readSop, reloadMachines };

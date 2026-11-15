@@ -7,7 +7,10 @@
   "scripts": {
     "start": "node server.js",
     "seed-demo": "node scripts/seed-demo.js",
-    "clear-demo": "node scripts/clear-demo.js"
+    "clear-demo": "node scripts/clear-demo.js",
+    "seed-studio-demo": "node scripts/seed-studio-demo.js",
+    "clear-studio-demo": "node scripts/clear-studio-demo.js",
+    "test:studio": "node --test tests/studio.test.js"
   },
   "engines": {
     "node": ">=18"

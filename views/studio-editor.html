@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#151713">
+  <title>SOP起草与审核｜扫码安全官</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/studio.css">
+  <script src="/studio.js" defer></script>
+</head>
+<body class="studio-page" data-studio-page="editor">
+  <div class="safety-stripe" aria-hidden="true"></div>
+  <header class="studio-header">
+    <div class="studio-header-top">
+      <div class="brand-row"><span class="brand-mark">安</span><span>扫码安全官 · SOP工作室</span></div>
+      <a class="button secondary" href="/studio">返回列表</a>
+    </div>
+    <h1 id="editor-title">起草安全操作规程</h1>
+    <p class="studio-principle">AI 起草，人来批准。AI 绝不自行发布。</p>
+  </header>
+
+  <main class="studio-main">
+    <div id="studio-alert" class="alert error-alert" role="alert" hidden></div>
+
+    <!-- NEW DRAFT: capture the master's dictation -->
+    <section id="new-draft-panel" class="card studio-card">
+      <div class="section-title"><span>01</span><div><h2>老师傅口述</h2><p>粘贴或输入老师傅的操作过程。AI 只据此整理，绝不编造老师傅没说的步骤。</p></div></div>
+      <label for="machine-name">设备名称</label>
+      <input id="machine-name" type="text" maxlength="60" placeholder="例如：钻床" autocomplete="off">
+      <label for="machine-id">设备标识（可选）</label>
+      <input id="machine-id" type="text" maxlength="40" placeholder="留空则发布时自动生成，例如 drill-press" autocomplete="off">
+      <label for="transcript">口述内容</label>
+      <textarea id="transcript" rows="8" maxlength="4000" placeholder="老师傅说：先关机，等主轴停稳……"></textarea>
+      <div class="studio-button-row">
+        <button id="draft-button" class="button primary" type="button">AI 起草</button>
+        <button id="demo-button" class="button secondary" type="button">载入演示示例并起草</button>
+      </div>
+      <p id="draft-hint" class="studio-hint">AI 不可用时可点“载入演示示例并起草”，用内置示例走完整流程。</p>
+    </section>
+
+    <!-- DRAFT EDITOR -->
+    <section id="editor-panel" hidden>
+      <div class="studio-statusbar" id="editor-statusbar"></div>
+
+      <div class="card studio-card">
+        <div class="section-title"><span>02</span><div><h2>规程内容</h2><p>逐条核对并编辑。所有内容都会被安全地转义和截断。</p></div></div>
+
+        <label for="draft-title">规程标题</label>
+        <input id="draft-title" type="text" maxlength="100" autocomplete="off">
+        <label for="draft-purpose">目的（一句话）</label>
+        <input id="draft-purpose" type="text" maxlength="300" autocomplete="off">
+        <label for="draft-ppe">个人防护装备（每行一项）</label>
+        <textarea id="draft-ppe" rows="2"></textarea>
+
+        <div class="studio-subheading"><h3>规则</h3><p>标为“AI建议·待确认”的规则必须逐条确认后才能审核。</p></div>
+        <div id="rules-list" class="studio-list"></div>
+        <button id="add-rule" class="button secondary" type="button">＋ 添加规则</button>
+
+        <div class="studio-subheading"><h3>危险点（每行一项）</h3></div>
+        <textarea id="draft-danger" rows="3"></textarea>
+        <div class="studio-subheading"><h3>必须停机并询问老师的情况（每行一项）</h3></div>
+        <textarea id="draft-stop" rows="3"></textarea>
+        <div class="studio-subheading"><h3>开机前检查（每行一项）</h3></div>
+        <textarea id="draft-checklist" rows="3"></textarea>
+
+        <div class="studio-subheading"><h3>待补充问题</h3><p>老师傅没讲清楚的，列在这里；可填写答案后“用答案完善草稿”。</p></div>
+        <div id="gaps-list" class="studio-list"></div>
+
+        <div class="studio-subheading"><h3>小测题目草稿</h3></div>
+        <div id="quiz-list" class="studio-list"></div>
+
+        <div class="studio-button-row">
+          <button id="save-draft" class="button primary" type="button">保存草稿</button>
+          <button id="answer-gaps" class="button secondary" type="button">用答案完善草稿（AI）</button>
+        </div>
+      </div>
+
+      <!-- APPROVAL GATE -->
+      <div class="card studio-card studio-approve">
+        <div class="section-title"><span>03</span><div><h2>人工审核</h2><p>AI 不能发布。必须由老师逐条核对、勾选确认并署名。</p></div></div>
+        <label for="reviewer-name">审核人姓名</label>
+        <input id="reviewer-name" type="text" maxlength="20" autocomplete="off" placeholder="请输入真实姓名（2-20字）">
+        <label class="studio-check"><input type="checkbox" id="confirm-rules">我已逐条核对所有规则，无误、无编造。</label>
+        <label class="studio-check"><input type="checkbox" id="confirm-requirements">规程符合实训中心实际要求。</label>
+        <label class="studio-check"><input type="checkbox" id="confirm-gaps">我知道仍有未回答的问题，仍要批准。</label>
+        <div class="studio-button-row">
+          <button id="approve-button" class="button dark" type="button">提交审核</button>
+        </div>
+      </div>
+
+      <!-- PUBLISH -->
+      <div class="card studio-card studio-publish" id="publish-panel" hidden>
+        <div class="section-title"><span>04</span><div><h2>发布到安全官</h2><p>发布会写入学生可访问的规程页面，并重新生成简报与小测。</p></div></div>
+        <div class="studio-button-row">
+          <button id="publish-button" class="button primary" type="button">发布到安全官</button>
+        </div>
+        <div id="publish-result" hidden></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">AI 起草，人来批准。发布前必须由老师逐条核对并署名。</footer>
+</body>
+</html>

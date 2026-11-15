@@ -17,6 +17,7 @@
   const elements = {
     machineName: document.getElementById('machine-name'),
     machineDescription: document.getElementById('machine-description'),
+    machineTrust: document.getElementById('machine-trust'),
     alert: document.getElementById('app-alert'),
     briefingList: document.getElementById('briefing-list'),
     briefingNext: document.getElementById('briefing-next'),
@@ -627,6 +628,12 @@
       state.machine = await api(withLang(`/api/machine/${encodeURIComponent(machineId)}`));
       elements.machineName.textContent = state.machine.name;
       elements.machineDescription.textContent = state.machine.description;
+      if (state.machine.approval && state.machine.approval.approvedBy) {
+        elements.machineTrust.textContent = t('trustBadge', { version: state.machine.approval.version });
+        elements.machineTrust.hidden = false;
+      } else {
+        elements.machineTrust.hidden = true;
+      }
       document.title = t('machineTitle', { machine: state.machine.name });
       const canAutoStart = state.mode === 'visitor' ? state.name : (state.name && state.studentId);
       if (canAutoStart) {
