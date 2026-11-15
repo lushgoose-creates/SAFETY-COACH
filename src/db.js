@@ -82,6 +82,17 @@ db.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS faq (
+    id TEXT PRIMARY KEY,
+    machine_id TEXT NOT NULL,
+    question TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    source_question_id INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_faq_machine ON faq(machine_id, created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_sop_drafts_status ON sop_drafts(status, updated_at DESC);
   CREATE INDEX IF NOT EXISTS idx_sop_drafts_machine ON sop_drafts(machine_id);
   CREATE INDEX IF NOT EXISTS idx_sop_versions_machine ON sop_versions(machine_id, version DESC);

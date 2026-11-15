@@ -71,6 +71,17 @@
 .link-button { min-height: 40px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 9px; background: white; font-size: 12px; font-weight: 800; color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; }
 .link-button:hover { background: var(--yellow-soft); }
 .link-button.danger { border-color: #e0c4c2; color: #8e2525; }
+.link-button.primary-link { border-color: var(--ink); background: var(--yellow); color: var(--ink); }
+.link-button.primary-link:hover { background: var(--yellow-deep, #f0c400); }
+
+/* Keep the action column visible on narrow screens instead of letting it
+   scroll out of view. */
+@media (max-width: 900px) {
+  #studio-machines-table th:nth-child(2), #studio-machines-table td:nth-child(2),
+  #studio-machines-table th:nth-child(5), #studio-machines-table td:nth-child(5) { display: none; }
+  #studio-machines-table .studio-actions { flex-direction: column; align-items: stretch; }
+  #studio-machines-table .link-button { justify-content: center; }
+}
 
 .studio-actions { display: flex; flex-wrap: wrap; gap: 7px; }
 
@@ -82,3 +93,20 @@
   .studio-subheading { flex-direction: column; align-items: flex-start; gap: 3px; }
   .studio-main { padding-inline: 12px; }
 }
+
+.studio-header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.studio-header-actions .button { min-height: 42px; font-size: 13px; }
+.studio-header-actions .language-toggle { min-height: 42px; padding: 0 14px; border: 1px solid #45493f; border-radius: 999px; color: var(--yellow); background: transparent; font-size: 13px; font-weight: 800; }
+.studio-header-actions .language-toggle:hover { background: rgba(255, 212, 41, 0.12); }
+
+/* FAQ management */
+.faq-answer-cell { min-width: 220px; }
+.faq-answer-text { margin: 0; color: #3f4438; font-size: 13px; line-height: 1.55; white-space: pre-wrap; }
+.faq-question { margin: 0 0 4px; font-size: 14px; font-weight: 700; }
+.asked-badge { display: inline-block; padding: 2px 8px; border-radius: 6px; color: #745d00; background: var(--yellow-soft); font-size: 11px; font-weight: 800; }
+.faq-answer-cell textarea { margin-bottom: 8px; }
+.escalation-section table td:nth-child(4) { min-width: 260px; }
+
+/* Version history */
+.version-heading { margin: 0 0 10px; }
+.version-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; font-size: 13px; }

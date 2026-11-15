@@ -296,3 +296,16 @@ td small { margin-top: 3px; color: var(--muted); font-size: 11px; }
 .visitor-card { border: 2px solid #3b82f6; background: linear-gradient(180deg, #eff6ff, #ffffff); }
 .visitor-badge { background: #3b82f6; color: #fff; }
 input:disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; }
+
+/* Instructor-answered FAQs on the student ask page */
+.faq-panel { margin-bottom: 14px; padding: 14px 16px; border: 1px solid #ebcd6d; background: #fffdf3; }
+.faq-panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.faq-panel-head strong { font-size: 15px; }
+.faq-panel-head span { color: var(--muted); font-size: 12px; }
+.faq-list { display: grid; gap: 8px; }
+.faq-item { border: 1px solid var(--line); border-radius: 10px; background: #fff; padding: 10px 12px; }
+.faq-summary { cursor: pointer; font-size: 14px; font-weight: 700; }
+.faq-summary::marker { color: var(--yellow-deep, #b58900); }
+.faq-answer { margin: 8px 0 0; padding-left: 2px; color: #3f4438; font-size: 14px; line-height: 1.6; }
+.faq-ask-button { margin-top: 8px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: 12px; font-weight: 800; }
+.faq-ask-button:hover { background: var(--yellow-soft); }

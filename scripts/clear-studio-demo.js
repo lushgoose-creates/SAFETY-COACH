@@ -14,6 +14,7 @@ const sopsDir = path.join(rootDir, 'sops');
 const drafts = db.prepare("DELETE FROM sop_drafts WHERE machine_id LIKE 'demo-%'").run();
 const versions = db.prepare("DELETE FROM sop_versions WHERE machine_id LIKE 'demo-%'").run();
 const audit = db.prepare("DELETE FROM audit_log WHERE machine_id LIKE 'demo-%'").run();
+const faqs = db.prepare("DELETE FROM faq WHERE machine_id LIKE 'demo-%'").run();
 
 let removedMachines = 0;
 try {
@@ -35,6 +36,6 @@ if (fs.existsSync(sopsDir)) {
   }
 }
 
-console.log(`已清理：${drafts.changes} 条草稿，${versions.changes} 个版本，${audit.changes} 条审计，${removedMachines} 台设备，${removedSops} 个规程文件。`);
+console.log(`已清理：${drafts.changes} 条草稿，${versions.changes} 个版本，${audit.changes} 条审计，${faqs.changes} 条常见问题，${removedMachines} 台设备，${removedSops} 个规程文件。`);
 console.log('真实数据未改动。');
 db.close();

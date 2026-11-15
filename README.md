@@ -197,7 +197,7 @@ Run `clear-demo` before the judged live demonstration.
 
 “老师傅说一遍，安全官教一万遍。” The SOP Studio turns a master's 口述 (dictation) into an approved, published SOP. The core rule: **AI drafts, a human approves — AI never publishes by itself.** There is no code path that publishes a draft the server has not marked `approved`.
 
-Open `/studio` (same `admin` / `ADMIN_PASSWORD` sign-in as `/admin`).
+Open `/studio` (same `admin` / `ADMIN_PASSWORD` sign-in as `/admin`). Use the **English / 中文** button in the header to switch the studio language; the choice is remembered per browser.
 
 Workflow:
 
@@ -205,6 +205,10 @@ Workflow:
 2. **编辑** — review every rule. Any rule marked **AI建议·待确认** must be checked off (confirmed) before approval. Answer the 待补充问题 (gaps), or leave them and acknowledge them at approval.
 3. **审核** — enter a real reviewer name and tick the two confirmations (plus the gaps acknowledgement when any gap is unanswered). The server refuses to approve otherwise.
 4. **发布** — only an `approved` draft can publish. Publishing atomically writes the SOP file and `machines.json`, records a version, regenerates the briefing/quiz caches, and shows the student QR code. The machine page then shows an **“已通过教师审核 · 第N版”** trust badge.
+
+**Editing any machine:** every published machine in `/studio` has an **编辑规程** action. It opens (or resumes) a draft rebuilt from that machine's current `sops/<id>.md`, so the existing 车床 / 钻床 SOPs can be revised and republished through the same approval gate — no AI key required.
+
+**Answers for students (FAQ):** the **学生在问（未回答）** table groups real student questions that the SOP did not cover, with a count of how often each was asked. Write an answer and click **回答并发布**; the Q&A is published as a **常见问题** entry and appears in the student **问答** step after scanning, as a tappable list. Entries can be edited or deleted from the **常见问题** table. Answering also clears those questions from the escalation list.
 
 Publishing a machine that already exists creates a **new version** and supports rollback from the list page. Student Q&A is unchanged: a question the SOP does not cover still escalates to the dashboard, where **据此起草** opens a prefilled studio draft.
 

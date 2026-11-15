@@ -3,7 +3,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const db = require('./db');
 const { isAiConfigured, requestChat, parseJsonContent } = require('./ai');
-const { getMachine, listMachines, reloadMachines } = require('./machines');
+const { getMachine, listMachines, readSop, reloadMachines } = require('./machines');
 
 const rootDir = path.join(__dirname, '..');
 const sopsDir = path.join(rootDir, 'sops');
@@ -418,8 +418,10 @@ function buildSopMarkdown(draft, { machineNameZh, version, approvedBy, approvedA
 
 function updateMachinesJson(machineId, nameZh, draft) {
   const list = JSON.parse(fs.readFileSync(machinesPath, 'utf8'));
-  const description = (draft.purpose || '实训中心安全操作规程').slice(0, 120);
   const existing = list.find((machine) => machine.id === machineId);
+  // Keep the existing description when the draft has no purpose, so editing an
+  // existing machine does not blank out its student-facing summary.
+  const description = (draft.purpose || existing?.description || '实训中心安全操作规程').slice(0, 120);
   if (existing) {
     existing.name = nameZh;
     existing.description = description;
@@ -499,15 +501,32 @@ function unansweredQuestionCount(machineId) {
 }
 
 function listUnansweredQuestions() {
-  const byId = new Map(listMachines().map((machine) => [machine.id, machine.name]));
-  return db.prepare('SELECT id, machine_id, question, created_at FROM questions_log WHERE answered=0 ORDER BY created_at DESC LIMIT 200').all()
-    .map((row) => ({
-      id: row.id,
-      machineId: row.machine_id,
-      machineName: byId.get(row.machine_id) || row.machine_id,
-      question: row.question,
-      createdAt: row.created_at
-    }));
+  const names = new Map(listMachines().map((machine) => [machine.id, machine.name]));
+  const rows = db.prepare('SELECT id, machine_id, question, created_at FROM questions_log WHERE answered=0 ORDER BY created_at DESC LIMIT 500').all();
+  const grouped = new Map();
+  for (const row of rows) {
+    const question = String(row.question || '').trim();
+    if (!question) continue;
+    const key = `${row.machine_id}|${question}`;
+    const existing = grouped.get(key);
+    if (existing) {
+      existing.count += 1;
+      existing.ids.push(row.id);
+    } else {
+      grouped.set(key, {
+        id: row.id,
+        ids: [row.id],
+        machineId: row.machine_id,
+        machineName: names.get(row.machine_id) || row.machine_id,
+        question,
+        count: 1,
+        createdAt: row.created_at
+      });
+    }
+  }
+  return [...grouped.values()]
+    .sort((a, b) => b.count - a.count || String(b.createdAt).localeCompare(String(a.createdAt)))
+    .slice(0, 200);
 }
 
 // Latest human-approval record for a machine, or null if it has never been
@@ -516,6 +535,150 @@ function machineApproval(machineId) {
   const latest = db.prepare('SELECT version, approved_by, approved_at FROM sop_versions WHERE machine_id=? ORDER BY version DESC LIMIT 1').get(machineId);
   if (!latest) return null;
   return { version: latest.version, approvedBy: latest.approved_by, approvedAt: latest.approved_at };
+}
+
+// ---- Editing an already-published machine ----
+
+function splitList(value) {
+  return String(value || '')
+    .split(/[、；;，,]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+// Turn an existing SOP markdown file back into an editable draft. Used so a
+// teacher can revise any machine, not only ones drafted through the studio.
+function parseSopToDraft(sopText, machineNameZh) {
+  const lines = String(sopText || '').replace(/\r\n/g, '\n').split('\n');
+  let title = '';
+  let section = '';
+  const ppe = [];
+  const danger_points = [];
+  const stop_conditions = [];
+  const checklist = [];
+  const rules = [];
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (!title && line.startsWith('# ')) { title = line.slice(2).trim(); continue; }
+    if (line.startsWith('## ')) { section = line.slice(3).trim(); continue; }
+
+    const ruleMatch = line.match(/^(?:规则|Rule)\s*(\d+)[：:]\s*(.+)$/);
+    if (ruleMatch) {
+      const text = ruleMatch[2].trim().slice(0, 300);
+      rules.push({ text, why: '', source: 'master', danger: /严禁|不得|禁止|必须|急停|停机|危险/.test(text) });
+      continue;
+    }
+
+    if (section === '安全要点' || section === 'Safety Points') {
+      const bullet = line.replace(/^[-•]\s*/, '');
+      if (bullet.startsWith('个人防护：')) ppe.push(...splitList(bullet.slice(5)));
+      else if (bullet.startsWith('危险点：')) danger_points.push(...splitList(bullet.slice(4)));
+      else if (bullet.startsWith('立即停机并询问老师：')) stop_conditions.push(...splitList(bullet.slice(10)));
+      else if (bullet.startsWith('开机前检查：')) checklist.push(...splitList(bullet.slice(6)));
+    }
+  }
+
+  return {
+    title: title || `${machineNameZh || ''}安全操作规程`,
+    purpose: '',
+    ppe: asStringArray(ppe).slice(0, 20),
+    rules: dedupeRules(rules).slice(0, 30),
+    danger_points: asStringArray(danger_points).slice(0, 20),
+    stop_conditions: asStringArray(stop_conditions).slice(0, 20),
+    checklist: asStringArray(checklist).slice(0, 30),
+    gaps: [],
+    quiz_seed: []
+  };
+}
+
+// Open (or resume) an editable draft for an existing machine.
+function createDraftFromMachine(machineId) {
+  const mid = String(machineId || '').trim().toLowerCase();
+  if (!isValidMachineId(mid)) return { error: '设备标识不合法。' };
+  const machine = getMachine(mid);
+  if (!machine) return { error: '未找到该设备。' };
+
+  const active = db.prepare("SELECT id FROM sop_drafts WHERE machine_id=? AND status IN ('draft','in_review','approved') ORDER BY updated_at DESC LIMIT 1").get(mid);
+  if (active) return { ok: true, draftId: active.id, resumed: true };
+
+  const sopText = readSop(machine).text;
+  const draft = parseSopToDraft(sopText, machine.name);
+  const id = newId('draft');
+  const ts = nowIso();
+  db.prepare('INSERT INTO sop_drafts (id, machine_id, machine_name_zh, transcript, draft_json, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)')
+    .run(id, mid, machine.name, sopText, JSON.stringify(draft), 'draft', ts, ts);
+  audit(mid, ACTIONS.draft_created, 'instructor', { draftId: id, machineNameZh: machine.name, fromExistingSop: true });
+  return { ok: true, draftId: id, resumed: false };
+}
+
+// ---- FAQ: instructor answers surfaced on the student ask page ----
+
+function listFaq(machineId) {
+  const mid = machineId == null || String(machineId).trim() === '' ? null : String(machineId).trim().toLowerCase();
+  if (mid && !isValidMachineId(mid)) return [];
+  const rows = mid
+    ? db.prepare('SELECT * FROM faq WHERE machine_id=? ORDER BY created_at DESC').all(mid)
+    : db.prepare('SELECT * FROM faq ORDER BY created_at DESC').all();
+  const names = new Map(listMachines().map((machine) => [machine.id, machine.name]));
+  return rows.map((row) => ({
+    id: row.id,
+    machineId: row.machine_id,
+    machineName: names.get(row.machine_id) || row.machine_id,
+    question: row.question,
+    answer: row.answer,
+    sourceQuestionId: row.source_question_id,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  }));
+}
+
+function saveFaq({ id, machineId, question, answer, sourceQuestionId }) {
+  const q = String(question || '').trim().replace(/\s+/g, ' ').slice(0, 300);
+  const a = String(answer || '').trim().slice(0, 1000);
+  if (!q) return { error: '请填写问题。' };
+  if (!a) return { error: '请填写老师回答。' };
+  const mid = String(machineId || '').trim().toLowerCase();
+  if (!isValidMachineId(mid)) return { error: '设备标识不合法。' };
+  if (!getMachine(mid)) return { error: '未找到该设备。' };
+  const ts = nowIso();
+
+  if (id) {
+    const row = db.prepare('SELECT * FROM faq WHERE id=?').get(id);
+    if (!row) return { error: '常见问题不存在。' };
+    db.prepare('UPDATE faq SET question=?, answer=?, updated_at=? WHERE id=?').run(q, a, ts, id);
+    if (row.source_question_id) db.prepare('UPDATE questions_log SET answered=1 WHERE id=?').run(row.source_question_id);
+    audit(mid, 'faq_updated', 'instructor', { faqId: id });
+    return { id, updated: true };
+  }
+
+  const faqId = newId('faq');
+  const sourceId = Number.isInteger(Number(sourceQuestionId)) && Number(sourceQuestionId) > 0 ? Number(sourceQuestionId) : null;
+  db.prepare('INSERT INTO faq (id, machine_id, question, answer, source_question_id, created_at, updated_at) VALUES (?,?,?,?,?,?,?)')
+    .run(faqId, mid, q, a, sourceId, ts, ts);
+  if (sourceId) {
+    // Mark every identical student question answered, not just this one row.
+    db.prepare('UPDATE questions_log SET answered=1 WHERE machine_id=? AND question=? AND answered=0').run(mid, q);
+  }
+  audit(mid, 'faq_published', 'instructor', { faqId, question: q });
+  return { id: faqId, created: true };
+}
+
+function deleteFaq(id) {
+  const row = db.prepare('SELECT * FROM faq WHERE id=?').get(id);
+  if (!row) return { error: '常见问题不存在。' };
+  db.prepare('DELETE FROM faq WHERE id=?').run(id);
+  audit(row.machine_id, 'faq_deleted', 'instructor', { faqId: id });
+  return { ok: true };
+}
+
+// Student-facing list: only questions + answers, no internal metadata.
+function publicFaq(machineId) {
+  const mid = String(machineId || '').trim().toLowerCase();
+  if (!isValidMachineId(mid)) return [];
+  return db.prepare('SELECT id, question, answer, updated_at FROM faq WHERE machine_id=? ORDER BY created_at DESC LIMIT 30').all(mid)
+    .map((row) => ({ id: row.id, question: row.question, answer: row.answer, updatedAt: row.updated_at }));
 }
 
 function listStudio() {
@@ -615,5 +778,11 @@ module.exports = {
   listStudio,
   listUnansweredQuestions,
   machineApproval,
+  parseSopToDraft,
+  createDraftFromMachine,
+  listFaq,
+  saveFaq,
+  deleteFaq,
+  publicFaq,
   studioStats
 };

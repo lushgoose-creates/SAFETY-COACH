@@ -11,7 +11,8 @@
     mode: readStored('safetyCoachMode') || 'student',
     quiz: null,
     lastQuestion: '',
-    asking: false
+    asking: false,
+    faqLoaded: false
   };
 
   const elements = {
@@ -23,6 +24,8 @@
     briefingNext: document.getElementById('briefing-next'),
     chatMessages: document.getElementById('chat-messages'),
     chatForm: document.getElementById('chat-form'),
+    faqPanel: document.getElementById('faq-panel'),
+    faqList: document.getElementById('faq-list'),
     questionInput: document.getElementById('question-input'),
     askButton: document.getElementById('ask-button'),
     chatNext: document.getElementById('chat-next'),
@@ -188,7 +191,41 @@
 
   function enterChat() {
     showScreen('chat');
+    loadFaq();
     elements.questionInput.focus({ preventScroll: true });
+  }
+
+  // Instructor-answered FAQs from the SOP Studio, shown at the top of the ask
+  // section. Content is instructor-authored and rendered as plain text.
+  async function loadFaq() {
+    if (!elements.faqPanel || state.faqLoaded) return;
+    state.faqLoaded = true;
+    try {
+      const data = await api(withLang(`/api/faq/${encodeURIComponent(machineId)}`));
+      const items = Array.isArray(data.items) ? data.items : [];
+      if (!items.length) {
+        elements.faqPanel.hidden = true;
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      items.forEach((item) => {
+        const details = createElement('details', 'faq-item');
+        details.append(createElement('summary', 'faq-summary', item.question));
+        details.append(createElement('p', 'faq-answer', item.answer));
+        const askAgain = createElement('button', 'faq-ask-button', t('faqAskThis'));
+        askAgain.type = 'button';
+        askAgain.addEventListener('click', () => {
+          elements.questionInput.value = item.question;
+          elements.questionInput.focus({ preventScroll: false });
+        });
+        details.append(askAgain);
+        fragment.append(details);
+      });
+      elements.faqList.replaceChildren(fragment);
+      elements.faqPanel.hidden = false;
+    } catch {
+      elements.faqPanel.hidden = true;
+    }
   }
 
   function appendMessage(role, text, citedRules = [], unanswered = false) {

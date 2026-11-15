@@ -82,6 +82,13 @@
 
     <section id="screen-chat" class="flow-screen" hidden>
       <div class="section-heading"><span class="eyebrow" data-i18n="chatEyebrow">STEP 03 · 问问安全官</span><h2 data-i18n="chatTitle">有疑问，先问再操作</h2><p data-i18n="chatDescription">答案仅依据本机规程；未涵盖的问题会转交老师。</p></div>
+      <section id="faq-panel" class="faq-panel card" aria-live="polite" hidden>
+        <div class="faq-panel-head">
+          <strong data-i18n="faqStudentTitle">老师已回答的常见问题</strong>
+          <span data-i18n="faqStudentSub">点开查看答案</span>
+        </div>
+        <div id="faq-list" class="faq-list"></div>
+      </section>
       <div id="chat-messages" class="chat-messages" aria-live="polite">
         <div class="message assistant-message"><div class="message-label" data-i18n="coach">安全官</div><p data-i18n="chatWelcome">你可以问本机的防护、操作或异常处理问题。不确定时，请直接询问指导老师。</p></div>
       </div>

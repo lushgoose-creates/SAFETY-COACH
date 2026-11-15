@@ -185,6 +185,13 @@ app.get('/api/rules/:machineId', (req, res) => {
   res.json({ rules: getRules(machine, lang(req)) });
 });
 
+// Instructor-answered FAQs, shown in the student ask section.
+app.get('/api/faq/:machineId', (req, res) => {
+  const machine = validMachine(req, res);
+  if (!machine) return;
+  res.json({ items: studio.publicFaq(machine.id) });
+});
+
 app.post('/api/ask', askRateLimit, asyncRoute(async (req, res) => {
   const machine = getMachine(req.body?.machineId);
   const question = cleanText(req.body?.question, 300);
@@ -369,6 +376,11 @@ app.get('/qr', asyncRoute(async (req, res) => {
 // ---- SOP Studio: AI drafts, a human approves, AI NEVER publishes by itself ----
 app.get('/studio', adminAuth, (req, res) => res.sendFile(path.join(rootDir, 'views', 'studio.html')));
 app.get('/studio/new', adminAuth, (req, res) => res.sendFile(path.join(rootDir, 'views', 'studio-editor.html')));
+app.get('/studio/edit/:machineId', adminAuth, (req, res) => {
+  const result = studio.createDraftFromMachine(req.params.machineId);
+  if (result.error) return res.status(404).send(escapeHtml(result.error));
+  res.redirect(`/studio/${encodeURIComponent(result.draftId)}`);
+});
 app.get('/studio/:draftId', adminAuth, (req, res) => res.sendFile(path.join(rootDir, 'views', 'studio-editor.html')));
 app.use('/api/studio', adminAuth);
 
@@ -376,6 +388,32 @@ app.get('/api/studio/list', (req, res) => res.json({ machines: studio.listStudio
 app.get('/api/studio/stats', (req, res) => res.json(studio.studioStats()));
 app.get('/api/studio/sample', (req, res) => res.json({ transcript: studio.SAMPLE_TRANSCRIPT, draft: studio.SAMPLE_DRAFT }));
 app.get('/api/studio/unanswered', (req, res) => res.json({ questions: studio.listUnansweredQuestions() }));
+
+app.get('/api/studio/faq', (req, res) => res.json({ items: studio.listFaq(req.query.machineId) }));
+
+app.post('/api/studio/faq', (req, res) => {
+  const result = studio.saveFaq({
+    id: req.body?.id,
+    machineId: req.body?.machineId,
+    question: req.body?.question,
+    answer: req.body?.answer,
+    sourceQuestionId: req.body?.sourceQuestionId
+  });
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json(result);
+});
+
+app.delete('/api/studio/faq/:id', (req, res) => {
+  const result = studio.deleteFaq(req.params.id);
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json(result);
+});
+
+app.post('/api/studio/edit/:machineId', (req, res) => {
+  const result = studio.createDraftFromMachine(req.params.machineId);
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json(result);
+});
 
 app.get('/api/studio/draft/:id', (req, res) => {
   const draft = studio.getDraftPublic(req.params.id);

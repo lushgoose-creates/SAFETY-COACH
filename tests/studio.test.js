@@ -189,3 +189,74 @@ test('listStudio and studioStats return sane shapes without throwing', () => {
 test('machineApproval returns null for a never-published machine', () => {
   assert.strictEqual(studio.machineApproval('__never__published__'), null);
 });
+
+// ---------- editing an existing machine ----------
+
+test('parseSopToDraft rebuilds an editable draft from existing SOP markdown', () => {
+  const markdown = `# 车床安全操作规程
+
+本规程由张三于2026-11-15审核批准(第1版)
+
+## 安全要点
+- 个人防护：护目镜、工作服
+- 危险点：旋转卡盘；飞出的切屑
+- 立即停机并询问老师：异常声响
+- 开机前检查：防护罩完好
+
+## 操作规程
+规则1：开机前检查防护罩是否完好。
+规则2：严禁戴手套靠近旋转主轴。
+`;
+  const draft = studio.parseSopToDraft(markdown, '车床');
+  assert.strictEqual(draft.title, '车床安全操作规程');
+  assert.deepStrictEqual(draft.ppe, ['护目镜', '工作服']);
+  assert.deepStrictEqual(draft.danger_points, ['旋转卡盘', '飞出的切屑']);
+  assert.deepStrictEqual(draft.stop_conditions, ['异常声响']);
+  assert.deepStrictEqual(draft.checklist, ['防护罩完好']);
+  assert.strictEqual(draft.rules.length, 2);
+  assert.strictEqual(draft.rules[0].source, 'master');
+  assert.strictEqual(draft.rules[0].danger, false);
+  assert.strictEqual(draft.rules[1].danger, true);
+});
+
+test('createDraftFromMachine rejects an unknown machine', () => {
+  const result = studio.createDraftFromMachine('__no_such_machine__');
+  assert.ok(result.error);
+});
+
+// ---------- FAQ (instructor answers shown to students) ----------
+
+test('saveFaq publishes an answer that listFaq and publicFaq return', () => {
+  const saved = studio.saveFaq({
+    machineId: 'lathe',
+    question: '测试问题：清理切屑时可以戴手套吗？',
+    answer: '不可以，手套会被切屑或旋转部件卷入。'
+  });
+  assert.ok(saved.id);
+
+  const mine = studio.listFaq('lathe').find((item) => item.id === saved.id);
+  assert.ok(mine);
+  assert.strictEqual(mine.machineId, 'lathe');
+
+  const publicItem = studio.publicFaq('lathe').find((item) => item.id === saved.id);
+  assert.ok(publicItem);
+  assert.strictEqual(publicItem.question, '测试问题：清理切屑时可以戴手套吗？');
+  assert.strictEqual(publicItem.answer, '不可以，手套会被切屑或旋转部件卷入。');
+  assert.strictEqual(publicItem.machineId, undefined); // students never see internal fields
+
+  const removed = studio.deleteFaq(saved.id);
+  assert.strictEqual(removed.ok, true);
+  assert.ok(!studio.publicFaq('lathe').some((item) => item.id === saved.id));
+
+  db.prepare("DELETE FROM audit_log WHERE action IN ('faq_published','faq_deleted') AND detail_json LIKE ?")
+    .run(`%${saved.id}%`);
+});
+
+test('saveFaq rejects an empty answer or unknown machine', () => {
+  assert.ok(studio.saveFaq({ machineId: 'lathe', question: 'q', answer: '   ' }).error);
+  assert.ok(studio.saveFaq({ machineId: '__nope__', question: 'q', answer: 'a' }).error);
+});
+
+test('publicFaq returns an empty list for an invalid machine id', () => {
+  assert.deepStrictEqual(studio.publicFaq('BAD ID'), []);
+});

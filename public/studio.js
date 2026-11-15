@@ -2,11 +2,175 @@
   'use strict';
 
   const page = document.body.dataset.studioPage;
+  const LANG_KEY = 'studioLang';
 
-  function el(tag, className, text) {
+  const I18N = {
+    zh: {
+      brand: '扫码安全官', brandEditor: '扫码安全官 · SOP工作室',
+      backToAdmin: '返回教师仪表盘', backToList: '返回列表',
+      studioTitle: 'SOP工作室', slogan: '老师傅说一遍，安全官教一万遍',
+      principle: 'AI 起草，人来批准。AI 绝不自行发布任何规程。',
+      principleShort: 'AI 起草，人来批准。AI 绝不自行发布。',
+      pageTitleList: 'SOP工作室｜扫码安全官', pageTitleEditor: 'SOP起草与审核｜扫码安全官',
+      machinesTitle: '设备规程', machinesDesc: '任何已发布设备都可以编辑并重新发布。只有“已批准”的规程才能发布。',
+      newSop: '＋ 新建 SOP',
+      thMachine: '设备', thId: '标识', thStatus: '状态', thVersion: '版本', thUpdated: '最近更新', thActions: '操作',
+      thQuestion: '问题', thAnswer: '老师回答', thTime: '时间', thAnswerAction: '回答',
+      emptyMachines: '暂无设备或草稿。点击“新建 SOP”开始。',
+      faqTitle: '常见问题', faqDesc: '老师回答后，会显示在学生扫码后的“问答”页面。',
+      faqEmpty: '还没有常见问题。回答下面的学生提问即可添加。',
+      unansweredTitle: '学生在问（未回答）', unansweredDesc: '学生问过但规程尚未覆盖的问题。回答后会作为常见问题，显示在学生问答页面。',
+      noUnanswered: '暂无待回答问题。', footer: 'AI 起草，人来批准。发布前必须由老师逐条核对并署名。',
+      statPublished: '已发布设备', statVersions: '累计版本', statAvgMinutes: '平均发布耗时（分钟）',
+      statusDraft: '草稿', statusReview: '审核中', statusApproved: '已批准', statusPublished: '已发布', statusRejected: '已驳回',
+      editSop: '编辑规程', studentPage: '学生页', versions: '版本', editDraft: '编辑草稿', resumeDraft: '继续草稿',
+      versionLabel: '第{version}版', versionLabelShort: '第{version}版',
+      versionHistory: '版本历史', noVersions: '暂无版本记录。',
+      rollbackTo: '回滚到此版本', rollbackConfirm: '确定回滚到第 {version} 版吗？这会新建一个版本。',
+      versionLine: '第{version}版 · {by} · {time}',
+      edit: '编辑', delete: '删除', save: '保存', cancel: '取消',
+      answerPlaceholder: '写下老师回答…', publishAnswer: '回答并发布', answerRequired: '请先填写回答。',
+      askedTimes: '被问 {count} 次', savedFaq: '已发布到学生问答页面。', deletedFaq: '已删除。',
+      deleteConfirm: '确定删除这条常见问题吗？学生页面将不再显示。',
+      loginRequired: '需要重新登录（教师账号验证）。', requestFailed: '请求失败，请稍后重试。',
+      editorTitleNew: '起草安全操作规程', editorTitleEdit: '编辑安全操作规程',
+      dictationTitle: '老师傅口述', dictationDesc: '粘贴或输入老师傅的操作过程。AI 只据此整理，绝不编造老师傅没说的步骤。',
+      machineNameLabel: '设备名称', machineNamePlaceholder: '例如：钻床',
+      machineIdLabel: '设备标识（可选）', machineIdPlaceholder: '留空则发布时自动生成',
+      transcriptLabel: '口述内容', transcriptPlaceholder: '老师傅说：先关机，等主轴停稳……',
+      draftButton: 'AI 起草', demoButton: '载入演示示例并起草',
+      draftHint: 'AI 不可用时可点“载入演示示例并起草”，用内置示例走完整流程。',
+      contentTitle: '规程内容', contentDesc: '逐条核对并编辑。所有内容都会被安全地转义和截断。',
+      titleLabel: '规程标题', purposeLabel: '目的（一句话）', ppeLabel: '个人防护装备（每行一项）',
+      rulesHeading: '规则', rulesDesc: '标为“AI建议·待确认”的规则必须逐条确认后才能审核。', addRule: '＋ 添加规则',
+      dangerHeading: '危险点（每行一项）', stopHeading: '必须停机并询问老师的情况（每行一项）',
+      checklistHeading: '开机前检查（每行一项）',
+      gapsHeading: '待补充问题', gapsDesc: '老师傅没讲清楚的，列在这里；可填写答案后“用答案完善草稿”。',
+      quizHeading: '小测题目草稿',
+      saveDraft: '保存草稿', answerGaps: '用答案完善草稿（AI）',
+      reviewTitle: '人工审核', reviewDesc: 'AI 不能发布。必须由老师逐条核对、勾选确认并署名。',
+      reviewerLabel: '审核人姓名', reviewerPlaceholder: '请输入真实姓名（2-20字）',
+      confirmRules: '我已逐条核对所有规则，无误、无编造。',
+      confirmRequirements: '规程符合实训中心实际要求。',
+      confirmGaps: '我知道仍有未回答的问题，仍要批准。',
+      submitReview: '提交审核',
+      publishTitle: '发布到安全官', publishDesc: '发布会写入学生可访问的规程页面，并重新生成简报与小测。',
+      publishButton: '发布到安全官', publishing: '发布中…',
+      ruleIndex: '规则{number}', sourceMaster: '师傅口述', sourceAi: 'AI建议·待确认', sourceReviewed: '已确认',
+      dangerRule: '危险规则（预防伤害）', confirmAiRule: '确认采用这条 AI 建议', deleteRule: '删除',
+      ruleTextPlaceholder: '规则内容（一句话）', ruleWhyPlaceholder: '为什么（简短理由）',
+      gapWhyPrefix: '为什么重要：', gapAnswerPlaceholder: '答案（可选，填写后可用“用答案完善草稿”）',
+      quizIndexLabel: '对应规则序号：', quizQuestionPlaceholder: '题目 {number}',
+      unnamedMachine: '未命名设备', statusPrefix: '状态：', savedDraft: '已保存草稿。',
+      approvedMsg: '已批准，可以发布。', publishedTitle: '已发布到安全官',
+      publishedMeta: '设备：{name} · 第{version}版 · 审核：{by}',
+      qrAlt: '学生页面二维码', openStudentPage: '打开学生页', drafting: '起草中…'
+    },
+    en: {
+      brand: 'Safety Coach', brandEditor: 'Safety Coach · SOP Studio',
+      backToAdmin: 'Back to dashboard', backToList: 'Back to list',
+      studioTitle: 'SOP Studio', slogan: 'The master says it once. The Coach teaches everyone.',
+      principle: 'AI drafts. A human approves. AI never publishes an SOP by itself.',
+      principleShort: 'AI drafts. A human approves. AI never publishes.',
+      pageTitleList: 'SOP Studio | Safety Coach', pageTitleEditor: 'Draft & approve SOP | Safety Coach',
+      machinesTitle: 'Machine SOPs', machinesDesc: 'Any published machine can be edited and republished. Only approved SOPs can be published.',
+      newSop: '+ New SOP',
+      thMachine: 'Machine', thId: 'ID', thStatus: 'Status', thVersion: 'Version', thUpdated: 'Last updated', thActions: 'Actions',
+      thQuestion: 'Question', thAnswer: 'Instructor answer', thTime: 'Time', thAnswerAction: 'Answer',
+      emptyMachines: 'No machines or drafts yet. Click "New SOP" to start.',
+      faqTitle: 'Frequently asked questions', faqDesc: 'Instructor answers appear on the student Q&A page after scanning.',
+      faqEmpty: 'No FAQs yet. Answer a student question below to add one.',
+      unansweredTitle: 'Students asking (unanswered)', unansweredDesc: 'Questions the SOP does not cover. Your answer is published as an FAQ on the student page.',
+      noUnanswered: 'No unanswered questions.', footer: 'AI drafts. A human approves. Every SOP must be checked and signed by the instructor before publishing.',
+      statPublished: 'Published machines', statVersions: 'Total versions', statAvgMinutes: 'Avg minutes to publish',
+      statusDraft: 'Draft', statusReview: 'In review', statusApproved: 'Approved', statusPublished: 'Published', statusRejected: 'Rejected',
+      editSop: 'Edit SOP', studentPage: 'Student page', versions: 'Versions', editDraft: 'Edit draft', resumeDraft: 'Resume draft',
+      versionLabel: 'v{version}', versionLabelShort: 'v{version}',
+      versionHistory: 'Version history', noVersions: 'No versions recorded.',
+      rollbackTo: 'Roll back to this version', rollbackConfirm: 'Roll back to v{version}? This creates a new version.',
+      versionLine: 'v{version} · {by} · {time}',
+      edit: 'Edit', delete: 'Delete', save: 'Save', cancel: 'Cancel',
+      answerPlaceholder: 'Write the instructor answer…', publishAnswer: 'Answer & publish', answerRequired: 'Please write an answer first.',
+      askedTimes: 'Asked {count}×', savedFaq: 'Published to the student Q&A page.', deletedFaq: 'Deleted.',
+      deleteConfirm: 'Delete this FAQ? It will disappear from the student page.',
+      loginRequired: 'Please sign in again (instructor account).', requestFailed: 'Request failed. Please try again.',
+      editorTitleNew: 'Draft a machine SOP', editorTitleEdit: 'Edit machine SOP',
+      dictationTitle: "Master's dictation", dictationDesc: 'Paste what the master said. The AI only organizes it and never invents steps the master did not mention.',
+      machineNameLabel: 'Machine name', machineNamePlaceholder: 'e.g. Drill Press',
+      machineIdLabel: 'Machine ID (optional)', machineIdPlaceholder: 'Leave blank to generate one on publish',
+      transcriptLabel: 'Dictation', transcriptPlaceholder: 'The master said: switch off, wait for the spindle to stop…',
+      draftButton: 'AI draft', demoButton: 'Load demo sample and draft',
+      draftHint: 'If AI is unavailable, click "Load demo sample and draft" to walk through the whole flow offline.',
+      contentTitle: 'SOP content', contentDesc: 'Review and edit every item. All content is escaped and truncated safely.',
+      titleLabel: 'SOP title', purposeLabel: 'Purpose (one sentence)', ppeLabel: 'PPE (one per line)',
+      rulesHeading: 'Rules', rulesDesc: 'Rules marked "AI suggestion · unconfirmed" must be confirmed one by one before approval.', addRule: '+ Add rule',
+      dangerHeading: 'Hazards (one per line)', stopHeading: 'Stop and ask the instructor when (one per line)',
+      checklistHeading: 'Pre-start checks (one per line)',
+      gapsHeading: 'Open questions', gapsDesc: 'What the master left unclear. Add answers, then use "Improve draft with answers".',
+      quizHeading: 'Quiz question drafts',
+      saveDraft: 'Save draft', answerGaps: 'Improve draft with answers (AI)',
+      reviewTitle: 'Human review', reviewDesc: 'The AI cannot publish. The instructor must check every rule, tick the confirmations, and sign.',
+      reviewerLabel: 'Reviewer name', reviewerPlaceholder: 'Real name (2-20 characters)',
+      confirmRules: 'I checked every rule. Nothing is wrong or invented.',
+      confirmRequirements: 'This SOP matches the training center’s real requirements.',
+      confirmGaps: 'I know some questions are still unanswered and I still want to approve.',
+      submitReview: 'Submit for review',
+      publishTitle: 'Publish to Safety Coach', publishDesc: 'Publishing writes the student-facing SOP page and regenerates the briefing and quiz.',
+      publishButton: 'Publish to Safety Coach', publishing: 'Publishing…',
+      ruleIndex: 'Rule {number}', sourceMaster: "Master's words", sourceAi: 'AI suggestion · unconfirmed', sourceReviewed: 'Confirmed',
+      dangerRule: 'Hazard rule (injury prevention)', confirmAiRule: 'Confirm this AI suggestion', deleteRule: 'Delete',
+      ruleTextPlaceholder: 'Rule text (one sentence)', ruleWhyPlaceholder: 'Why (short reason)',
+      gapWhyPrefix: 'Why it matters: ', gapAnswerPlaceholder: 'Answer (optional, then use "Improve draft with answers")',
+      quizIndexLabel: 'Rule number: ', quizQuestionPlaceholder: 'Question {number}',
+      unnamedMachine: 'Unnamed machine', statusPrefix: 'Status: ', savedDraft: 'Draft saved.',
+      approvedMsg: 'Approved. Ready to publish.', publishedTitle: 'Published to Safety Coach',
+      publishedMeta: 'Machine: {name} · v{version} · Reviewer: {by}',
+      qrAlt: 'Student page QR code', openStudentPage: 'Open student page', drafting: 'Drafting…'
+    }
+  };
+
+  let currentLang = (() => {
+    try { return localStorage.getItem(LANG_KEY) === 'en' ? 'en' : 'zh'; } catch { return 'zh'; }
+  })();
+
+  function t(key, vars) {
+    const raw = (I18N[currentLang] && I18N[currentLang][key]) || (I18N.zh[key] || key);
+    if (!vars) return raw;
+    return raw.replace(/\{(\w+)\}/g, (match, name) => (vars[name] === undefined ? match : String(vars[name])));
+  }
+
+  let rerender = () => {};
+
+  function applyStatic() {
+    document.documentElement.lang = currentLang === 'en' ? 'en' : 'zh-CN';
+    document.title = page === 'list' ? t('pageTitleList') : t('pageTitleEditor');
+    document.querySelectorAll('[data-i18n]').forEach((node) => {
+      node.textContent = t(node.dataset.i18n);
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((node) => {
+      node.placeholder = t(node.dataset.i18nPlaceholder);
+    });
+    const toggle = document.getElementById('studio-lang');
+    if (toggle) toggle.textContent = currentLang === 'zh' ? 'English' : '中文';
+  }
+
+  function setupLanguageToggle() {
+    const toggle = document.getElementById('studio-lang');
+    if (!toggle) return;
+    toggle.addEventListener('click', () => {
+      currentLang = currentLang === 'zh' ? 'en' : 'zh';
+      try { localStorage.setItem(LANG_KEY, currentLang); } catch { /* ignore */ }
+      applyStatic();
+      rerender();
+    });
+  }
+
+  // Build an element. `content` may be text or an existing DOM node.
+  function el(tag, className, content) {
     const node = document.createElement(tag);
     if (className) node.className = className;
-    if (text !== undefined) node.textContent = text;
+    if (content instanceof Node) node.append(content);
+    else if (content !== undefined) node.textContent = content;
     return node;
   }
 
@@ -19,10 +183,12 @@
 
   function formatTime(value) {
     if (!value) return '';
-    return new Intl.DateTimeFormat('zh-CN', {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return new Intl.DateTimeFormat(currentLang === 'en' ? 'en-GB' : 'zh-CN', {
       year: 'numeric', month: '2-digit', day: '2-digit',
       hour: '2-digit', minute: '2-digit', hour12: false
-    }).format(new Date(value));
+    }).format(date);
   }
 
   async function api(url, options = {}) {
@@ -31,48 +197,75 @@
       headers: options.body ? { 'Content-Type': 'application/json', ...options.headers } : options.headers
     });
     const data = await response.json().catch(() => ({}));
-    if (response.status === 401) {
-      throw new Error('需要重新登录（教师账号验证）。');
-    }
-    if (!response.ok) throw new Error(data.error || '请求失败，请稍后重试。');
+    if (response.status === 401) throw new Error(t('loginRequired'));
+    if (!response.ok) throw new Error(data.error || t('requestFailed'));
     return data;
   }
 
-  const STATUS_LABELS = {
-    draft: '草稿', in_review: '审核中', approved: '已批准', published: '已发布', rejected: '已驳回'
-  };
   const STATUS_CLASS = {
     draft: 'status-pill-draft', in_review: 'status-pill-review',
     approved: 'status-pill-approved', published: 'status-pill-published', rejected: 'status-pill-rejected'
   };
+  const STATUS_KEY = {
+    draft: 'statusDraft', in_review: 'statusReview', approved: 'statusApproved',
+    published: 'statusPublished', rejected: 'statusRejected'
+  };
 
   function statusPill(status) {
-    return el('span', `status-pill ${STATUS_CLASS[status] || 'status-pill-draft'}`, STATUS_LABELS[status] || status);
+    return el('span', `status-pill ${STATUS_CLASS[status] || 'status-pill-draft'}`, t(STATUS_KEY[status] || 'statusDraft'));
+  }
+
+  function actionLink(href, label, newTab, extraClass) {
+    const link = el('a', `link-button${extraClass ? ` ${extraClass}` : ''}`, label);
+    link.href = href;
+    if (newTab) { link.target = '_blank'; link.rel = 'noopener'; }
+    return link;
+  }
+
+  function button(label, className, onClick) {
+    const node = el('button', className || 'link-button', label);
+    node.type = 'button';
+    if (onClick) node.addEventListener('click', onClick);
+    return node;
   }
 
   /* ============================ LIST PAGE ============================ */
 
   if (page === 'list') {
+    const data = { machines: [], stats: null, faq: [], unanswered: [] };
+
     async function loadList() {
       try {
-        const [list, stats, unanswered] = await Promise.all([
-          api('/api/studio/list'), api('/api/studio/stats'), api('/api/studio/unanswered')
+        const [list, stats, faq, unanswered] = await Promise.all([
+          api('/api/studio/list'), api('/api/studio/stats'),
+          api('/api/studio/faq'), api('/api/studio/unanswered')
         ]);
-        renderStats(stats);
-        renderMachines(list.machines);
-        renderUnanswered(unanswered.questions);
+        data.machines = list.machines;
+        data.stats = stats;
+        data.faq = faq.items;
+        data.unanswered = unanswered.questions;
+        renderAll();
         alertBox('');
       } catch (error) {
         alertBox(error.message);
       }
     }
 
-    function renderStats(stats) {
+    function renderAll() {
+      renderStats();
+      renderMachines();
+      renderFaq();
+      renderUnanswered();
+    }
+    rerender = renderAll;
+
+    function renderStats() {
       const root = document.getElementById('studio-stats');
+      const stats = data.stats || { publishedMachines: 0, totalVersions: 0, avgMinutesToPublish: null };
       const items = [
-        ['已发布设备', stats.publishedMachines],
-        ['累计版本', stats.totalVersions],
-        ['平均发布耗时（分钟）', stats.avgMinutesToPublish == null ? '—' : stats.avgMinutesToPublish]
+        [t('statPublished'), stats.publishedMachines],
+        [t('statVersions'), stats.totalVersions],
+        [t('statAvgMinutes'), stats.avgMinutesToPublish == null ? '—' : stats.avgMinutesToPublish]
       ];
       const fragment = document.createDocumentFragment();
       items.forEach(([label, value]) => {
@@ -86,35 +279,26 @@
     function machineActions(machine) {
       const wrap = el('div', 'studio-actions');
       if (machine.status === 'published') {
-        wrap.append(
-          actionLink(`/studio/new?machine=${encodeURIComponent(machine.id)}&machineName=${encodeURIComponent(machine.name)}`, '编辑规程', false),
-          actionLink(`/m/${encodeURIComponent(machine.id)}`, '学生页', true)
-        );
+        // Always offer editing. Opening the editor resumes an in-progress draft
+        // if one exists, so the action never disappears.
+        wrap.append(actionLink(`/studio/edit/${encodeURIComponent(machine.id)}`, t('editSop'), false, 'primary-link'));
+        wrap.append(actionLink(`/m/${encodeURIComponent(machine.id)}`, t('studentPage'), true));
         if (machine.version > 0) {
-          const versionBtn = el('button', 'link-button', '版本');
-          versionBtn.type = 'button';
-          versionBtn.addEventListener('click', () => toggleVersions(machine.id, versionBtn));
-          wrap.append(versionBtn);
+          wrap.append(button(t('versions'), 'link-button', () => toggleVersions(machine.id)));
         }
-      } else {
-        wrap.append(actionLink(`/studio/${encodeURIComponent(machine.draftId)}`, '编辑草稿', false));
+      } else if (machine.draftId) {
+        wrap.append(actionLink(`/studio/${encodeURIComponent(machine.draftId)}`, t('editDraft'), false, 'primary-link'));
       }
       return wrap;
     }
 
-    function actionLink(href, label, newTab) {
-      const link = el('a', 'link-button', label);
-      link.href = href;
-      if (newTab) { link.target = '_blank'; link.rel = 'noopener'; }
-      return link;
-    }
-
-    function renderMachines(machines) {
+    function renderMachines() {
       const tbody = document.getElementById('studio-machines');
       const empty = document.getElementById('studio-machines-empty');
       const fragment = document.createDocumentFragment();
-      machines.forEach((machine) => {
+      data.machines.forEach((machine) => {
         const row = document.createElement('tr');
+        row.dataset.machineId = machine.id;
         const nameCell = document.createElement('td');
         nameCell.append(el('strong', '', machine.name));
         if (machine.description) nameCell.append(el('small', '', machine.description));
@@ -122,93 +306,177 @@
           nameCell,
           el('td', 'machine-code', machine.id),
           el('td', '', statusPill(machine.status)),
-          el('td', '', machine.status === 'published' ? `第${machine.version}版` : '—'),
+          el('td', '', machine.status === 'published' ? t('versionLabel', { version: machine.version }) : '—'),
           el('td', 'time-cell', formatTime(machine.updatedAt)),
           el('td', '', machineActions(machine))
         );
         fragment.append(row);
       });
       tbody.replaceChildren(fragment);
-      empty.hidden = machines.length > 0;
-      tbody.closest('table').hidden = machines.length === 0;
+      empty.hidden = data.machines.length > 0;
+      tbody.closest('table').hidden = data.machines.length === 0;
     }
 
-    async function toggleVersions(machineId, button) {
+    async function toggleVersions(machineId) {
       const existing = document.getElementById(`versions-${machineId}`);
       if (existing) { existing.remove(); return; }
       try {
-        const data = await api(`/api/studio/versions/${encodeURIComponent(machineId)}`);
+        const result = await api(`/api/studio/versions/${encodeURIComponent(machineId)}`);
         const row = document.createElement('tr');
         row.id = `versions-${machineId}`;
         const cell = document.createElement('td');
         cell.colSpan = 6;
         const box = el('div', 'publish-result');
-        const heading = el('h4', '', '版本历史');
-        heading.style.margin = '0 0 10px';
-        box.append(heading);
-        if (!data.versions.length) box.append(el('p', 'empty-state', '暂无版本记录。'));
-        data.versions.forEach((version) => {
-          const line = document.createElement('div');
-          line.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;';
-          const info = el('span', '', `第${version.version}版 · ${version.approved_by} · ${formatTime(version.approved_at)}${version.change_note ? `（${version.change_note}）` : ''}`);
-          const rollback = el('button', 'link-button danger', '回滚到此版本');
-          rollback.type = 'button';
-          rollback.addEventListener('click', () => rollback(machineId, version.version));
-          line.append(info, rollback);
+        box.append(el('h4', 'version-heading', t('versionHistory')));
+        if (!result.versions.length) box.append(el('p', 'empty-state', t('noVersions')));
+        result.versions.forEach((version) => {
+          const line = el('div', 'version-row');
+          const note = version.change_note ? `（${version.change_note}）` : '';
+          line.append(
+            el('span', '', `${t('versionLine', { version: version.version, by: version.approved_by, time: formatTime(version.approved_at) })}${note}`),
+            button(t('rollbackTo'), 'link-button danger', () => rollback(machineId, version.version))
+          );
           box.append(line);
         });
         cell.append(box);
         row.append(cell);
-        button.closest('tr').after(row);
+        const anchor = document.querySelector(`#studio-machines tr[data-machine-id="${machineId}"]`);
+        if (anchor) anchor.after(row);
       } catch (error) {
         alertBox(error.message);
       }
     }
 
     async function rollback(machineId, version) {
-      if (!window.confirm(`确定回滚到第 ${version} 版吗？这会新建一个版本。`)) return;
+      if (!window.confirm(t('rollbackConfirm', { version }))) return;
       try {
-        await api('/api/studio/rollback', {
-          method: 'POST', body: JSON.stringify({ machineId, version })
-        });
+        await api('/api/studio/rollback', { method: 'POST', body: JSON.stringify({ machineId, version }) });
         loadList();
       } catch (error) {
         alertBox(error.message);
       }
     }
 
-    function renderUnanswered(questions) {
+    function renderFaq() {
+      const tbody = document.getElementById('studio-faq');
+      const empty = document.getElementById('studio-faq-empty');
+      const fragment = document.createDocumentFragment();
+      data.faq.forEach((item) => {
+        const row = document.createElement('tr');
+        const answerCell = document.createElement('td');
+        answerCell.className = 'faq-answer-cell';
+        answerCell.append(el('p', 'faq-answer-text', item.answer));
+        const actions = el('div', 'studio-actions');
+        actions.append(
+          button(t('edit'), 'link-button', () => startEditFaq(row, answerCell, item)),
+          button(t('delete'), 'link-button danger', () => removeFaq(item))
+        );
+        row.append(el('td', '', item.machineName), el('td', '', item.question), answerCell, el('td', '', actions));
+        fragment.append(row);
+      });
+      tbody.replaceChildren(fragment);
+      empty.hidden = data.faq.length > 0;
+      tbody.closest('table').hidden = data.faq.length === 0;
+    }
+
+    function startEditFaq(row, cell, item) {
+      cell.replaceChildren();
+      const textarea = document.createElement('textarea');
+      textarea.rows = 3;
+      textarea.maxLength = 1000;
+      textarea.value = item.answer;
+      const actions = el('div', 'studio-actions');
+      actions.append(
+        button(t('save'), 'button primary', async () => {
+          const answer = textarea.value.trim();
+          if (!answer) { alertBox(t('answerRequired')); return; }
+          try {
+            await api('/api/studio/faq', {
+              method: 'POST',
+              body: JSON.stringify({ id: item.id, machineId: item.machineId, question: item.question, answer })
+            });
+            alertBox(t('savedFaq'));
+            loadList();
+          } catch (error) { alertBox(error.message); }
+        }),
+        button(t('cancel'), 'link-button', () => { alertBox(''); loadList(); })
+      );
+      cell.append(textarea, actions);
+    }
+
+    async function removeFaq(item) {
+      if (!window.confirm(t('deleteConfirm'))) return;
+      try {
+        await api(`/api/studio/faq/${encodeURIComponent(item.id)}`, { method: 'DELETE' });
+        alertBox(t('deletedFaq'));
+        loadList();
+      } catch (error) { alertBox(error.message); }
+    }
+
+    function renderUnanswered() {
       const tbody = document.getElementById('studio-unanswered');
       const empty = document.getElementById('studio-unanswered-empty');
       const fragment = document.createDocumentFragment();
-      questions.forEach((question) => {
+      data.unanswered.forEach((question) => {
         const row = document.createElement('tr');
-        const action = el('a', 'link-button', '据此起草');
-        const params = new URLSearchParams({ q: question.question });
-        if (question.machineId) params.set('machine', question.machineId);
-        if (question.machineName) params.set('machineName', question.machineName);
-        action.href = `/studio/new?${params.toString()}`;
+
+        const questionCell = document.createElement('td');
+        questionCell.append(el('p', 'faq-question', question.question));
+        questionCell.append(el('span', 'asked-badge', t('askedTimes', { count: question.count })));
+
+        const answerCell = document.createElement('td');
+        const textarea = document.createElement('textarea');
+        textarea.rows = 2;
+        textarea.maxLength = 1000;
+        textarea.placeholder = t('answerPlaceholder');
+        const publish = button(t('publishAnswer'), 'button primary', async () => {
+          const answer = textarea.value.trim();
+          if (!answer) { alertBox(t('answerRequired')); return; }
+          publish.disabled = true;
+          try {
+            await api('/api/studio/faq', {
+              method: 'POST',
+              body: JSON.stringify({
+                machineId: question.machineId,
+                question: question.question,
+                answer,
+                sourceQuestionId: question.id
+              })
+            });
+            alertBox(t('savedFaq'));
+            loadList();
+          } catch (error) {
+            alertBox(error.message);
+            publish.disabled = false;
+          }
+        });
+        answerCell.append(textarea, el('div', 'studio-actions'));
+        answerCell.lastChild.append(publish);
+
         row.append(
           el('td', 'time-cell', formatTime(question.createdAt)),
           el('td', '', question.machineName),
-          el('td', '', question.question),
-          el('td', '', action)
+          questionCell,
+          answerCell
         );
         fragment.append(row);
       });
       tbody.replaceChildren(fragment);
-      empty.hidden = questions.length > 0;
-      tbody.closest('table').hidden = questions.length === 0;
+      empty.hidden = data.unanswered.length > 0;
+      tbody.closest('table').hidden = data.unanswered.length === 0;
     }
 
+    applyStatic();
+    setupLanguageToggle();
     loadList();
     return;
   }
 
   /* ============================ EDITOR PAGE ============================ */
 
-  const draftId = window.location.pathname.split('/').filter(Boolean).pop();
-  const isNew = window.location.pathname.endsWith('/new') || draftId === 'new' || draftId === 'studio';
+  const pathParts = window.location.pathname.split('/').filter(Boolean);
+  const lastPart = pathParts[pathParts.length - 1];
+  const isNew = window.location.pathname.endsWith('/new') || lastPart === 'new';
 
   const state = {
     draftId: null,
@@ -217,31 +485,28 @@
     draft: null
   };
 
-  const sourceLabel = { master: '师傅口述', ai_suggested: 'AI建议·待确认', reviewed: '已确认' };
-  const sourceClass = { master: 'source-master', ai_suggested: 'source-ai', reviewed: 'source-reviewed' };
+  const SOURCE_CLASS = { master: 'source-master', ai_suggested: 'source-ai', reviewed: 'source-reviewed' };
+  const SOURCE_KEY = { master: 'sourceMaster', ai_suggested: 'sourceAi', reviewed: 'sourceReviewed' };
 
   function readLines(id) {
     return document.getElementById(id).value.split('\n').map((s) => s.trim()).filter(Boolean);
   }
 
-  /* ---- rule card building ---- */
   function buildRuleCard(rule, index) {
     const card = el('div', 'rule-card');
     const head = el('div', 'rule-card-head');
     head.append(
-      el('span', 'rule-index', `规则${index + 1}`),
-      el('span', `source-badge ${sourceClass[rule.source] || 'source-master'}`, sourceLabel[rule.source] || rule.source)
+      el('span', 'rule-index', t('ruleIndex', { number: index + 1 })),
+      el('span', `source-badge ${SOURCE_CLASS[rule.source] || 'source-master'}`, t(SOURCE_KEY[rule.source] || 'sourceMaster'))
     );
-    const del = el('button', 'rule-delete', '删除');
-    del.type = 'button';
-    del.addEventListener('click', () => card.remove());
+    const del = button(t('deleteRule'), 'rule-delete', () => card.remove());
     head.append(del);
     card.append(head);
 
     const textInput = document.createElement('input');
     textInput.type = 'text';
     textInput.maxLength = 300;
-    textInput.placeholder = '规则内容（一句话）';
+    textInput.placeholder = t('ruleTextPlaceholder');
     textInput.value = rule.text || '';
     textInput.className = 'rule-text';
     card.append(textInput);
@@ -249,7 +514,7 @@
     const whyInput = document.createElement('input');
     whyInput.type = 'text';
     whyInput.maxLength = 200;
-    whyInput.placeholder = '为什么（简短理由）';
+    whyInput.placeholder = t('ruleWhyPlaceholder');
     whyInput.value = rule.why || '';
     whyInput.className = 'rule-why';
     card.append(whyInput);
@@ -259,7 +524,7 @@
     dangerInput.type = 'checkbox';
     dangerInput.className = 'rule-danger-input';
     dangerInput.checked = !!rule.danger;
-    danger.append(dangerInput, document.createTextNode('危险规则（预防伤害）'));
+    danger.append(dangerInput, document.createTextNode(t('dangerRule')));
     card.append(danger);
 
     if (rule.source !== 'master') {
@@ -268,7 +533,7 @@
       confirmInput.type = 'checkbox';
       confirmInput.className = 'rule-confirm-input';
       confirmInput.checked = rule.source === 'reviewed';
-      confirm.append(confirmInput, document.createTextNode('确认采用这条 AI 建议'));
+      confirm.append(confirmInput, document.createTextNode(t('confirmAiRule')));
       card.append(confirm);
     }
 
@@ -295,10 +560,10 @@
   function buildGapCard(gap) {
     const card = el('div', 'gap-card');
     card.append(el('p', 'gap-question', gap.question));
-    if (gap.why_it_matters) card.append(el('p', 'gap-why', `为什么重要：${gap.why_it_matters}`));
+    if (gap.why_it_matters) card.append(el('p', 'gap-why', `${t('gapWhyPrefix')}${gap.why_it_matters}`));
     const answer = document.createElement('textarea');
     answer.rows = 2;
-    answer.placeholder = '答案（可选，填写后可用“用答案完善草稿”）';
+    answer.placeholder = t('gapAnswerPlaceholder');
     answer.value = gap.answer || '';
     answer.className = 'gap-answer';
     card.append(answer);
@@ -306,15 +571,13 @@
   }
 
   function collectGaps() {
-    const out = [];
-    document.querySelectorAll('#gaps-list .gap-card').forEach((card) => {
-      out.push({
-        question: card.querySelector('.gap-question').textContent,
-        why_it_matters: (card.querySelector('.gap-why')?.textContent || '').replace(/^为什么重要：/, ''),
-        answer: card.querySelector('.gap-answer').value.trim()
-      });
-    });
-    return out;
+    return [...document.querySelectorAll('#gaps-list .gap-card')].map((card) => ({
+      question: card.querySelector('.gap-question').textContent,
+      why_it_matters: card.querySelector('.gap-why')
+        ? card.querySelector('.gap-why').textContent.replace(t('gapWhyPrefix'), '')
+        : '',
+      answer: card.querySelector('.gap-answer').value.trim()
+    }));
   }
 
   function buildQuizCard(seed, index) {
@@ -322,11 +585,11 @@
     const question = document.createElement('input');
     question.type = 'text';
     question.maxLength = 200;
-    question.placeholder = `题目 ${index + 1}`;
+    question.placeholder = t('quizQuestionPlaceholder', { number: index + 1 });
     question.value = seed.question || '';
     question.className = 'quiz-question';
     const ruleWrap = el('label', 'quiz-rule');
-    ruleWrap.append(document.createTextNode('对应规则序号：'));
+    ruleWrap.append(document.createTextNode(t('quizIndexLabel')));
     const ruleIndex = document.createElement('input');
     ruleIndex.type = 'number';
     ruleIndex.min = 0;
@@ -362,6 +625,7 @@
   }
 
   function renderEditor() {
+    if (!state.draft) return;
     const draft = state.draft;
     document.getElementById('draft-title').value = draft.title || '';
     document.getElementById('draft-purpose').value = draft.purpose || '';
@@ -385,22 +649,27 @@
     updateStatusbar();
     document.getElementById('publish-panel').hidden = state.status !== 'approved';
   }
+  rerender = renderEditor;
 
   function updateStatusbar() {
     const bar = document.getElementById('editor-statusbar');
     bar.replaceChildren();
-    const name = el('strong', '', state.machineNameZh || '未命名设备');
-    const meta = el('span', 'muted', `${state.draftId || ''} · 状态：${STATUS_LABELS[state.status] || state.status}`);
-    bar.append(name, statusPill(state.status), meta);
+    bar.append(
+      el('strong', '', state.machineNameZh || t('unnamedMachine')),
+      statusPill(state.status),
+      el('span', 'muted', `${state.draftId || ''} · ${t('statusPrefix')}${t(STATUS_KEY[state.status] || 'statusDraft')}`)
+    );
   }
 
   async function loadDraft() {
     try {
-      const data = await api(`/api/studio/draft/${encodeURIComponent(state.draftId)}`);
-      state.machineNameZh = data.machineNameZh;
-      state.status = data.status;
-      state.draft = data.draft;
-      document.getElementById('editor-title').textContent = '编辑安全操作规程';
+      const result = await api(`/api/studio/draft/${encodeURIComponent(state.draftId)}`);
+      state.machineNameZh = result.machineNameZh;
+      state.status = result.status;
+      state.draft = result.draft;
+      const title = document.getElementById('editor-title');
+      title.dataset.i18n = 'editorTitleEdit';
+      title.textContent = t('editorTitleEdit');
       document.getElementById('new-draft-panel').hidden = true;
       document.getElementById('editor-panel').hidden = false;
       renderEditor();
@@ -412,75 +681,78 @@
 
   async function saveDraft() {
     try {
-      const data = await api(`/api/studio/draft/${encodeURIComponent(state.draftId)}`, {
+      const result = await api(`/api/studio/draft/${encodeURIComponent(state.draftId)}`, {
         method: 'PUT', body: JSON.stringify(collectForm())
       });
-      state.draft = data.draft;
-      state.status = data.status;
+      state.draft = result.draft;
+      state.status = result.status;
       renderEditor();
-      alertBox('已保存草稿。');
+      alertBox(t('savedDraft'));
     } catch (error) {
       alertBox(error.message);
     }
   }
 
   async function submitApprove() {
-    const reviewerName = document.getElementById('reviewer-name').value.trim();
-    const confirmations = {
-      rulesChecked: document.getElementById('confirm-rules').checked,
-      requirementsChecked: document.getElementById('confirm-requirements').checked,
-      gapsAcknowledged: document.getElementById('confirm-gaps').checked
-    };
     try {
-      const data = await api('/api/studio/approve', {
-        method: 'POST', body: JSON.stringify({ draftId: state.draftId, reviewerName, confirmations })
+      await api('/api/studio/approve', {
+        method: 'POST',
+        body: JSON.stringify({
+          draftId: state.draftId,
+          reviewerName: document.getElementById('reviewer-name').value.trim(),
+          confirmations: {
+            rulesChecked: document.getElementById('confirm-rules').checked,
+            requirementsChecked: document.getElementById('confirm-requirements').checked,
+            gapsAcknowledged: document.getElementById('confirm-gaps').checked
+          }
+        })
       });
       state.status = 'approved';
       updateStatusbar();
       document.getElementById('publish-panel').hidden = false;
-      alertBox('已批准，可以发布。');
+      alertBox(t('approvedMsg'));
     } catch (error) {
       alertBox(error.message);
     }
   }
 
   async function submitPublish() {
-    const button = document.getElementById('publish-button');
-    button.disabled = true;
-    button.textContent = '发布中…';
+    const publishButton = document.getElementById('publish-button');
+    publishButton.disabled = true;
+    publishButton.textContent = t('publishing');
     try {
-      const data = await api('/api/studio/publish', {
+      const result = await api('/api/studio/publish', {
         method: 'POST', body: JSON.stringify({ draftId: state.draftId })
       });
       state.status = 'published';
       updateStatusbar();
-      renderPublishResult(data);
+      renderPublishResult(result);
       alertBox('');
     } catch (error) {
       alertBox(error.message);
     } finally {
-      button.disabled = false;
-      button.textContent = '发布到安全官';
+      publishButton.disabled = false;
+      publishButton.textContent = t('publishButton');
     }
   }
 
-  function renderPublishResult(data) {
+  function renderPublishResult(result) {
     const box = document.getElementById('publish-result');
     box.hidden = false;
     box.replaceChildren();
-    box.append(el('h4', '', '已发布到安全官'));
-    box.append(el('p', '', `设备：${data.name} · 第${data.version}版 · 审核：${data.approvedBy}`));
+    box.append(el('h4', '', t('publishedTitle')));
+    box.append(el('p', '', t('publishedMeta', { name: result.name, version: result.version, by: result.approvedBy })));
     const img = document.createElement('img');
-    img.src = data.qrDataUrl;
-    img.alt = '学生页面二维码';
+    img.src = result.qrDataUrl;
+    img.alt = t('qrAlt');
     box.append(img);
-    const link = el('a', 'student-link', data.studentUrl);
-    link.href = data.studentUrl;
+    const link = el('a', 'student-link', result.studentUrl);
+    link.href = result.studentUrl;
     link.target = '_blank';
     link.rel = 'noopener';
     box.append(link);
-    const open = el('a', 'button primary', '打开学生页');
-    open.href = data.studentUrl;
+    const open = el('a', 'button primary', t('openStudentPage'));
+    open.href = result.studentUrl;
     open.target = '_blank';
     open.rel = 'noopener';
     box.append(open);
@@ -488,27 +760,26 @@
 
   async function answerGaps() {
     const answers = collectGaps().filter((gap) => gap.answer);
-    if (!answers.length) { alertBox('请先在“待补充问题”里填写至少一个答案。'); return; }
-    const button = document.getElementById('answer-gaps');
-    button.disabled = true;
-    button.textContent = '正在完善…';
+    if (!answers.length) { alertBox(t('answerRequired')); return; }
+    const node = document.getElementById('answer-gaps');
+    node.disabled = true;
+    node.textContent = t('drafting');
     try {
-      const data = await api('/api/studio/gaps', {
+      const result = await api('/api/studio/gaps', {
         method: 'POST', body: JSON.stringify({ draftId: state.draftId, answers })
       });
-      state.draft = data.draft;
+      state.draft = result.draft;
       renderEditor();
-      alertBox('已根据答案完善草稿。');
+      alertBox(t('savedDraft'));
     } catch (error) {
       alertBox(error.message);
     } finally {
-      button.disabled = false;
-      button.textContent = '用答案完善草稿（AI）';
+      node.disabled = false;
+      node.textContent = t('answerGaps');
     }
   }
 
   function initNew() {
-    document.getElementById('editor-title').textContent = '起草安全操作规程';
     document.getElementById('new-draft-panel').hidden = false;
     document.getElementById('editor-panel').hidden = true;
     const params = new URLSearchParams(window.location.search);
@@ -521,35 +792,40 @@
   }
 
   async function submitNew(demo) {
-    const machineNameZh = document.getElementById('machine-name').value.trim();
-    const machineId = document.getElementById('machine-id').value.trim();
-    const transcript = document.getElementById('transcript').value.trim();
-    const button = demo ? document.getElementById('demo-button') : document.getElementById('draft-button');
-    button.disabled = true;
-    button.textContent = '起草中…';
+    const node = demo ? document.getElementById('demo-button') : document.getElementById('draft-button');
+    node.disabled = true;
+    node.textContent = t('drafting');
     try {
-      const data = await api('/api/studio/draft', {
-        method: 'POST', body: JSON.stringify({ machineNameZh, machineId, transcript, demo })
+      const result = await api('/api/studio/draft', {
+        method: 'POST',
+        body: JSON.stringify({
+          machineNameZh: document.getElementById('machine-name').value.trim(),
+          machineId: document.getElementById('machine-id').value.trim(),
+          transcript: document.getElementById('transcript').value.trim(),
+          demo
+        })
       });
-      if (data.error) { alertBox(data.error); return; }
-      window.location.assign(`/studio/${encodeURIComponent(data.draftId)}`);
+      window.location.assign(`/studio/${encodeURIComponent(result.draftId)}`);
     } catch (error) {
       alertBox(error.message);
-    } finally {
-      button.disabled = false;
-      button.textContent = demo ? '载入演示示例并起草' : 'AI 起草';
+      node.disabled = false;
+      node.textContent = t(demo ? 'demoButton' : 'draftButton');
     }
   }
+
+  applyStatic();
+  setupLanguageToggle();
 
   if (isNew) {
     initNew();
   } else {
-    state.draftId = draftId;
+    state.draftId = lastPart;
     document.getElementById('new-draft-panel').hidden = true;
     document.getElementById('editor-panel').hidden = false;
     document.getElementById('save-draft').addEventListener('click', saveDraft);
     document.getElementById('add-rule').addEventListener('click', () => {
-      document.getElementById('rules-list').append(buildRuleCard({ text: '', why: '', source: 'master', danger: false }, document.querySelectorAll('#rules-list .rule-card').length));
+      const count = document.querySelectorAll('#rules-list .rule-card').length;
+      document.getElementById('rules-list').append(buildRuleCard({ text: '', why: '', source: 'master', danger: false }, count));
     });
     document.getElementById('approve-button').addEventListener('click', submitApprove);
     document.getElementById('publish-button').addEventListener('click', submitPublish);

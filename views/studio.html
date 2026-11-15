@@ -13,12 +13,15 @@
   <div class="safety-stripe" aria-hidden="true"></div>
   <header class="studio-header">
     <div class="studio-header-top">
-      <div class="brand-row"><span class="brand-mark">安</span><span>扫码安全官</span></div>
-      <a class="button secondary" href="/admin">返回教师仪表盘</a>
+      <div class="brand-row"><span class="brand-mark">安</span><span data-i18n="brand">扫码安全官</span></div>
+      <div class="studio-header-actions">
+        <button id="studio-lang" class="language-toggle" type="button">English</button>
+        <a class="button secondary" href="/admin" data-i18n="backToAdmin">返回教师仪表盘</a>
+      </div>
     </div>
-    <h1>SOP工作室</h1>
-    <p class="studio-slogan">老师傅说一遍，安全官教一万遍</p>
-    <p class="studio-principle">AI 起草，人来批准。AI 绝不自行发布任何规程。</p>
+    <h1 data-i18n="studioTitle">SOP工作室</h1>
+    <p class="studio-slogan" data-i18n="slogan">老师傅说一遍，安全官教一万遍</p>
+    <p class="studio-principle" data-i18n="principle">AI 起草，人来批准。AI 绝不自行发布任何规程。</p>
   </header>
 
   <main class="studio-main">
@@ -29,34 +32,77 @@
     <section class="studio-section">
       <div class="studio-toolbar">
         <div>
-          <h2>设备规程</h2>
-          <p>已发布设备与进行中的草稿。只有“已批准”的规程才能发布。</p>
+          <h2 data-i18n="machinesTitle">设备规程</h2>
+          <p data-i18n="machinesDesc">任何已发布设备都可以编辑并重新发布。只有“已批准”的规程才能发布。</p>
         </div>
-        <a class="button primary" href="/studio/new">＋ 新建 SOP</a>
+        <a class="button primary" href="/studio/new" data-i18n="newSop">＋ 新建 SOP</a>
+      </div>
+      <div class="table-wrap">
+        <table id="studio-machines-table">
+          <thead>
+            <tr>
+              <th data-i18n="thMachine">设备</th>
+              <th data-i18n="thId">标识</th>
+              <th data-i18n="thStatus">状态</th>
+              <th data-i18n="thVersion">版本</th>
+              <th data-i18n="thUpdated">最近更新</th>
+              <th data-i18n="thActions">操作</th>
+            </tr>
+          </thead>
+          <tbody id="studio-machines"></tbody>
+        </table>
+        <div id="studio-machines-empty" class="empty-state" data-i18n="emptyMachines" hidden>暂无设备或草稿。点击“新建 SOP”开始。</div>
+      </div>
+    </section>
+
+    <section class="studio-section">
+      <div class="studio-toolbar">
+        <div>
+          <h2 data-i18n="faqTitle">常见问题</h2>
+          <p data-i18n="faqDesc">老师回答后，会显示在学生扫码后的“问答”页面。</p>
+        </div>
       </div>
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>设备</th><th>标识</th><th>状态</th><th>版本</th><th>最近更新</th><th>操作</th></tr>
+            <tr>
+              <th data-i18n="thMachine">设备</th>
+              <th data-i18n="thQuestion">问题</th>
+              <th data-i18n="thAnswer">老师回答</th>
+              <th data-i18n="thActions">操作</th>
+            </tr>
           </thead>
-          <tbody id="studio-machines"></tbody>
+          <tbody id="studio-faq"></tbody>
         </table>
-        <div id="studio-machines-empty" class="empty-state" hidden>暂无设备或草稿。点击“新建 SOP”开始。</div>
+        <div id="studio-faq-empty" class="empty-state" data-i18n="faqEmpty" hidden>还没有常见问题。回答下面的学生提问即可添加。</div>
       </div>
     </section>
 
     <section class="studio-section escalation-section">
-      <div class="section-title"><span>？</span><div><h2>待补充的问题</h2><p>学生问过、但规程尚未覆盖的问题。点“据此起草”把它们纳入新规程。</p></div></div>
+      <div class="section-title">
+        <span>？</span>
+        <div>
+          <h2 data-i18n="unansweredTitle">学生在问（未回答）</h2>
+          <p data-i18n="unansweredDesc">学生问过但规程尚未覆盖的问题。回答后会作为常见问题，显示在学生问答页面。</p>
+        </div>
+      </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>时间</th><th>设备</th><th>学生问题</th><th>操作</th></tr></thead>
+          <thead>
+            <tr>
+              <th data-i18n="thTime">时间</th>
+              <th data-i18n="thMachine">设备</th>
+              <th data-i18n="thQuestion">问题</th>
+              <th data-i18n="thAnswerAction">回答</th>
+            </tr>
+          </thead>
           <tbody id="studio-unanswered"></tbody>
         </table>
-        <div id="studio-unanswered-empty" class="empty-state" hidden>暂无待补充问题。</div>
+        <div id="studio-unanswered-empty" class="empty-state" data-i18n="noUnanswered" hidden>暂无待回答问题。</div>
       </div>
     </section>
   </main>
 
-  <footer class="footer">AI 起草，人来批准。发布前必须由老师逐条核对并署名。</footer>
+  <footer class="footer" data-i18n="footer">AI 起草，人来批准。发布前必须由老师逐条核对并署名。</footer>
 </body>
 </html>
