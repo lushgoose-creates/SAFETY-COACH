@@ -22,6 +22,10 @@ function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
 function webglAvailable() {
   try {
     const canvas = document.createElement('canvas');
@@ -32,7 +36,7 @@ function webglAvailable() {
 }
 
 export async function createBlueprintViewer(container, machineId) {
-  const { t } = window.SafetyCoachI18n;
+  const { t, lang } = window.SafetyCoachI18n;
 
   if (!webglAvailable()) {
     const fallback = document.createElement('div');
@@ -108,7 +112,7 @@ export async function createBlueprintViewer(container, machineId) {
   const maxDim = Math.max(size.x, size.y, size.z, 0.5);
 
   controls.target.copy(center);
-  camera.position.set(center.x + maxDim * 1.7, center.y + maxDim * 1.15, center.z + maxDim * 2.1);
+  camera.position.set(center.x + maxDim * 1.32, center.y + maxDim * 0.9, center.z + maxDim * 1.65);
   controls.minDistance = maxDim * 0.5;
   controls.maxDistance = maxDim * 8;
   controls.minPolarAngle = 0.05;
@@ -142,6 +146,29 @@ export async function createBlueprintViewer(container, machineId) {
     partWires.get(partId).push(edges);
   });
 
+  // Construction-animation data: keep each part's top-level objects and their
+  // base positions, so parts can fly into place rather than just appearing.
+  const partRootsList = new Map();
+  root.traverse((obj) => {
+    const pid = obj.userData && obj.userData.partId;
+    if (!pid) return;
+    const parent = obj.parent;
+    if (parent && parent.userData && parent.userData.partId === pid) return;
+    if (!partRootsList.has(pid)) partRootsList.set(pid, []);
+    partRootsList.get(pid).push(obj);
+  });
+  const partBasePos = new Map();
+  for (const [pid, objs] of partRootsList) partBasePos.set(pid, objs.map((o) => o.position.clone()));
+  const partMeta = new Map();
+  for (const p of parts) partMeta.set(p.id, p);
+  const partOrder = parts.map((p) => p.id);
+  const assembleDrop = maxDim * 0.6;
+  const raycastTargets = meshes.map((m) => m.mesh);
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+  const hoverAnchor = new THREE.Vector3();
+  let hoverHideTimer = 0;
+
   let blueprint = true;
   const highlightColors = { yellow: 0xffd429, red: 0xff5252, green: 0x39d98a };
   const highlightMaterials = {};
@@ -169,14 +196,23 @@ export async function createBlueprintViewer(container, machineId) {
   let demoSpins = [];
   let powerOn = false;
   let powerSpins = [];
+  let assembling = false;
+  let assemblePaused = false;
+  let assembleIndex = 0;
+  let assembleProgress = 0;
+  let assembleGapTimer = 0;
+  let currentLabelPart = null;
+  let currentLabelAnchor = null;
+  const ASSEMBLE_DUR = 1400;
+  const ASSEMBLE_GAP = 300;
   let lastTime = performance.now();
 
   // Camera presets
   const presets = {
-    front: new THREE.Vector3(center.x, center.y + maxDim * 0.15, center.z + maxDim * 2.1),
-    side: new THREE.Vector3(center.x + maxDim * 2.1, center.y + maxDim * 0.15, center.z),
-    top: new THREE.Vector3(center.x, center.y + maxDim * 2.2, center.z + maxDim * 0.01),
-    iso: new THREE.Vector3(center.x + maxDim * 1.7, center.y + maxDim * 1.15, center.z + maxDim * 2.1)
+    front: new THREE.Vector3(center.x, center.y + maxDim * 0.12, center.z + maxDim * 1.65),
+    side: new THREE.Vector3(center.x + maxDim * 1.65, center.y + maxDim * 0.12, center.z),
+    top: new THREE.Vector3(center.x, center.y + maxDim * 1.7, center.z + maxDim * 0.01),
+    iso: new THREE.Vector3(center.x + maxDim * 1.32, center.y + maxDim * 0.9, center.z + maxDim * 1.65)
   };
 
   let fly = null;
@@ -223,6 +259,11 @@ export async function createBlueprintViewer(container, machineId) {
     for (const s of demoSpins) s.obj.rotateOnWorldAxis(s.axis, s.speed * dt);
     for (const s of powerSpins) s.obj.rotateOnWorldAxis(s.axis, s.speed * dt);
     controls.update();
+    if (assembling) {
+      stepAssemble(dt);
+      updateAssembleLabel();
+    }
+    updateHoverLabel();
     renderer.render(scene, camera);
   }
 
@@ -286,6 +327,42 @@ export async function createBlueprintViewer(container, machineId) {
   const powerBtn = addBtn(t('powerOn'), 'power', () => togglePower(!powerOn));
   controlsEl.appendChild(toolbar);
   container.appendChild(controlsEl);
+
+  // Construction ("assemble") controls, pinned to the top-right of the viewer.
+  const assembleBtn = document.createElement('button');
+  assembleBtn.type = 'button';
+  assembleBtn.className = 'bp-btn bp-assemble-btn';
+  assembleBtn.textContent = t('blueprintAssemble');
+  assembleBtn.addEventListener('click', () => {
+    if (!assembling) startAssemble();
+    else { assemblePaused = !assemblePaused; setAssembleButton(); }
+  });
+  const stopBtn = document.createElement('button');
+  stopBtn.type = 'button';
+  stopBtn.className = 'bp-btn bp-assemble-stop';
+  stopBtn.textContent = t('blueprintAssembleStop');
+  stopBtn.hidden = true;
+  stopBtn.addEventListener('click', resetAssembleState);
+  const assembleWrap = document.createElement('div');
+  assembleWrap.className = 'bp-assemble';
+  assembleWrap.append(assembleBtn, stopBtn);
+  container.appendChild(assembleWrap);
+
+  // Floating label that names the part currently being assembled.
+  const label = document.createElement('div');
+  label.className = 'bp-assemble-label';
+  label.hidden = true;
+  container.appendChild(label);
+
+  // Tooltip label for the part under the pointer / touched.
+  const hoverLabel = document.createElement('div');
+  hoverLabel.className = 'bp-assemble-label bp-part-label';
+  hoverLabel.hidden = true;
+  container.appendChild(hoverLabel);
+
+  renderer.domElement.addEventListener('pointermove', onPointerMove);
+  renderer.domElement.addEventListener('pointerdown', onPointerDown);
+  renderer.domElement.addEventListener('pointerleave', onPointerLeave);
 
   // Demo overlay (caption + badge, pinned to top)
   const overlayEl = document.createElement('div');
@@ -402,6 +479,183 @@ export async function createBlueprintViewer(container, machineId) {
     powerBtn.classList.toggle('is-powered', powerOn);
   }
 
+  function applyAssemblePart(partId, progress) {
+    const objs = partRootsList.get(partId);
+    if (!objs) return;
+    const bases = partBasePos.get(partId);
+    const e = easeOutCubic(Math.min(1, Math.max(0, progress)));
+    const offset = assembleDrop * (1 - e);
+    objs.forEach((obj, i) => {
+      const b = bases[i];
+      obj.position.set(b.x, b.y + offset, b.z);
+      obj.scale.setScalar(e);
+    });
+  }
+
+  function hideAllParts() {
+    for (const [pid, objs] of partRootsList) {
+      const bases = partBasePos.get(pid);
+      objs.forEach((obj, i) => {
+        obj.position.set(bases[i].x, bases[i].y + assembleDrop, bases[i].z);
+        obj.scale.setScalar(0);
+      });
+    }
+  }
+
+  function setAssembleButton() {
+    stopBtn.hidden = !assembling;
+    if (!assembling) {
+      assembleBtn.textContent = t('blueprintAssemble');
+      assembleBtn.classList.remove('is-playing');
+    } else if (assemblePaused) {
+      assembleBtn.textContent = t('blueprintResume');
+      assembleBtn.classList.add('is-playing');
+    } else {
+      assembleBtn.textContent = t('blueprintPause');
+      assembleBtn.classList.add('is-playing');
+    }
+  }
+
+  function resetAssembleState() {
+    assembling = false;
+    assemblePaused = false;
+    assembleIndex = 0;
+    assembleProgress = 0;
+    assembleGapTimer = 0;
+    currentLabelPart = null;
+    currentLabelAnchor = null;
+    label.hidden = true;
+    for (const [pid, objs] of partRootsList) {
+      const bases = partBasePos.get(pid);
+      objs.forEach((obj, i) => {
+        obj.position.copy(bases[i]);
+        obj.scale.setScalar(1);
+      });
+    }
+    setAssembleButton();
+  }
+
+  function startAssemble() {
+    stopDemo();
+    if (powerOn) togglePower(false);
+    clearHighlights();
+    controls.autoRotate = false;
+    hideAllParts();
+    assembling = true;
+    assemblePaused = false;
+    assembleIndex = 0;
+    assembleProgress = 0;
+    assembleGapTimer = 0;
+    currentLabelPart = null;
+    currentLabelAnchor = null;
+    label.hidden = true;
+    setAssembleButton();
+    flyTo(presets.iso);
+  }
+
+  function stepAssemble(dt) {
+    if (assemblePaused) return;
+    if (assembleGapTimer > 0) {
+      assembleGapTimer -= dt * 1000;
+      if (assembleGapTimer <= 0) {
+        assembleGapTimer = 0;
+        assembleIndex += 1;
+        assembleProgress = 0;
+        currentLabelPart = null;
+      }
+      return;
+    }
+    if (assembleIndex >= partOrder.length) {
+      resetAssembleState();
+      return;
+    }
+    const partId = partOrder[assembleIndex];
+    assembleProgress += (dt * 1000) / ASSEMBLE_DUR;
+    const p = Math.min(1, assembleProgress);
+    applyAssemblePart(partId, p);
+    if (currentLabelPart !== partId) {
+      currentLabelPart = partId;
+      const meta = partMeta.get(partId);
+      if (meta && meta.hotspotPosition) {
+        label.textContent = lang === 'en' ? meta.nameEn : meta.nameZh;
+        currentLabelAnchor = new THREE.Vector3(meta.hotspotPosition[0], meta.hotspotPosition[1], meta.hotspotPosition[2]);
+        label.hidden = false;
+      }
+    }
+    if (assembleProgress >= 1) {
+      assembleProgress = 1;
+      assembleGapTimer = ASSEMBLE_GAP;
+    }
+  }
+
+  function updateAssembleLabel() {
+    if (!assembling || !currentLabelAnchor) { label.hidden = true; return; }
+    const v = currentLabelAnchor.clone().project(camera);
+    if (v.z > 1) { label.hidden = true; return; }
+    const x = (v.x * 0.5 + 0.5) * container.clientWidth;
+    const y = (-v.y * 0.5 + 0.5) * container.clientHeight;
+    label.hidden = false;
+    label.style.transform = `translate(-50%, -100%) translate(${x}px, ${y - 18}px)`;
+  }
+
+  function setPointer(event) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  }
+
+  function partAtPointer() {
+    raycaster.setFromCamera(pointer, camera);
+    const hits = raycaster.intersectObjects(raycastTargets, false);
+    if (!hits.length) return null;
+    const partId = hits[0].object.userData.partId;
+    if (!partId) return null;
+    return { partId, point: hits[0].point.clone() };
+  }
+
+  function showHoverLabel(partId, point) {
+    const meta = partMeta.get(partId);
+    if (!meta) { hideHoverLabel(); return; }
+    hoverLabel.textContent = lang === 'en' ? meta.nameEn : meta.nameZh;
+    hoverAnchor.copy(point);
+    hoverLabel.hidden = false;
+  }
+
+  function hideHoverLabel() {
+    if (hoverHideTimer) { clearTimeout(hoverHideTimer); hoverHideTimer = 0; }
+    hoverLabel.hidden = true;
+  }
+
+  function onPointerMove(event) {
+    setPointer(event);
+    if (hoverHideTimer) { clearTimeout(hoverHideTimer); hoverHideTimer = 0; }
+    const hit = partAtPointer();
+    if (hit) showHoverLabel(hit.partId, hit.point);
+    else hideHoverLabel();
+  }
+
+  function onPointerDown(event) {
+    setPointer(event);
+    const hit = partAtPointer();
+    if (!hit) { hideHoverLabel(); return; }
+    showHoverLabel(hit.partId, hit.point);
+    if (hoverHideTimer) clearTimeout(hoverHideTimer);
+    hoverHideTimer = setTimeout(hideHoverLabel, 3000);
+  }
+
+  function onPointerLeave() {
+    hideHoverLabel();
+  }
+
+  function updateHoverLabel() {
+    if (hoverLabel.hidden) return;
+    const v = hoverAnchor.clone().project(camera);
+    if (v.z > 1) { hoverLabel.hidden = true; return; }
+    const x = (v.x * 0.5 + 0.5) * container.clientWidth;
+    const y = (-v.y * 0.5 + 0.5) * container.clientHeight;
+    hoverLabel.style.transform = `translate(-50%, -100%) translate(${x}px, ${y - 14}px)`;
+  }
+
   function dispose() {
     if (disposed) return;
     disposed = true;
@@ -426,6 +680,12 @@ export async function createBlueprintViewer(container, machineId) {
     grid.geometry.dispose();
     (Array.isArray(grid.material) ? grid.material : [grid.material]).forEach((m) => m.dispose());
     overlayEl.remove();
+    assembleWrap.remove();
+    label.remove();
+    hoverLabel.remove();
+    renderer.domElement.removeEventListener('pointermove', onPointerMove);
+    renderer.domElement.removeEventListener('pointerdown', onPointerDown);
+    renderer.domElement.removeEventListener('pointerleave', onPointerLeave);
     renderer.dispose();
     renderer.domElement.remove();
     controlsEl.remove();
