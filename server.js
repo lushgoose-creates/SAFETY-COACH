@@ -50,13 +50,11 @@ function msg(req, key) {
 
 app.disable('x-powered-by');
 app.use((req, res, next) => {
-  const nonce = crypto.randomBytes(16).toString('base64');
-  res.locals.nonce = nonce;
   res.set({
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'no-referrer',
-    'Content-Security-Policy': `default-src 'self'; script-src 'self' 'nonce-${nonce}'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'`
+    'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
   });
   next();
 });
@@ -73,16 +71,6 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
-}
-
-function importMapTag(nonce) {
-  const map = {
-    imports: {
-      three: '/three/build/three.module.js',
-      'three/addons/': '/three/examples/jsm/'
-    }
-  };
-  return `<script type="importmap" nonce="${nonce}">${JSON.stringify(map)}</script>`;
 }
 
 function cleanText(value, maxLength) {
@@ -161,9 +149,7 @@ app.get('/m/:machineId', (req, res) => {
   if (!getMachine(req.params.machineId)) {
     return res.status(404).send(msg(req, 'machineNotFound'));
   }
-  let html = fs.readFileSync(path.join(rootDir, 'views', 'machine.html'), 'utf8');
-  html = html.replace('__IMPORTMAP__', importMapTag(res.locals.nonce));
-  res.type('html').send(html);
+  res.type('html').send(fs.readFileSync(path.join(rootDir, 'views', 'machine.html'), 'utf8'));
 });
 
 app.get('/api/machine/:machineId', (req, res) => {
